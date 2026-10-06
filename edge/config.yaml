@@ -1,0 +1,87 @@
+# Cultive AI edge config — one Raspberry Pi, one RS485 bus.
+# Register maps are from vendor docs; anything marked VERIFY must be checked on site.
+
+site:
+  customer: cultive-internal
+  site: kerala-test-01
+
+serial:
+  port: /dev/ttyUSB0        # USB-RS485 adapter; check with `ls /dev/ttyUSB*`
+  baudrate: 9600            # every device gets moved to 9600 8N1 during setup
+  parity: N
+  stopbits: 1
+  timeout: 1.0
+
+poll_interval_s: 60
+offline_after_failures: 3   # consecutive failed reads before a device is marked offline
+simulate: false             # true = fake sensors, no hardware needed
+db_path: data/cultive.db
+
+upload:
+  url: ""                   # empty = keep everything local (SQLite) for now
+  api_key: ""              # leave empty here; put the real key in .env as CULTIVE_API_KEY (never commit it)
+  batch_size: 200
+
+devices:
+  # ---- Air temperature / humidity: MD02 (SHT20) ----
+  - id: air-1
+    model: md02
+    address: 2
+    zone: test-tray-1
+    registers:
+      - {param: air_temp, reg: 0x0001, fc: 4, type: s16, scale: 0.1, unit: C}
+      - {param: air_humidity, reg: 0x0002, fc: 4, type: u16, scale: 0.1, unit: "%RH"}
+
+  # ---- Light: Wittelb WIN-SN-LUX-M (address set by DIP switch, not software) ----
+  - id: light-1
+    model: wittelb_lux
+    address: 3
+    zone: test-tray-1
+    registers:
+      # VERIFY in direct sun: value is lux x10 in a 16-bit register, which would cap at 6553.5 lux.
+      # If midday readings flatline near 6553 or wrap around, switch type to u32 or u32_lowfirst (reads regs 0-1).
+      - {param: light_lux, reg: 0x0000, fc: 3, type: u16, scale: 0.1, unit: lux}
+
+  # ---- Pot substrate: Renke RS-ECTHPH-N01-TR-1 (4-in-1), probe inside ONE representative pot ----
+  # In potting mix (cocopeat etc.) absolute values are off; use it as a trend + proof a flood cycle ran.
+  - id: pot-1
+    model: renke
+    address: 4
+    zone: test-tray-1
+    registers:
+      - {param: soil_moisture, reg: 0x0000, fc: 3, type: u16, scale: 0.1, unit: "%VWC"}
+      - {param: soil_temp, reg: 0x0001, fc: 3, type: s16, scale: 0.1, unit: C}
+      - {param: soil_ec, reg: 0x0002, fc: 3, type: u16, scale: 1, unit: "uS/cm"}
+      - {param: soil_ph, reg: 0x0003, fc: 3, type: u16, scale: 0.1, unit: pH}
+
+  # ---- Water tank level: DFRobot URM15 ultrasonic ----
+  - id: tank-1
+    model: urm15
+    address: 5
+    zone: reservoir
+    tank_height_cm: 100       # SET ON SITE: sensor face to tank bottom, in cm
+    registers:
+      - {param: tank_distance_cm, reg: 0x0005, fc: 3, type: u16, scale: 0.1, unit: cm, invalid: 0xFFFF}
+
+  # ---- Nutrient reservoir pH: Renke RS-PH-N01 (probe sits in the fertigation tank) ----
+  # VERIFY on site: compare against a pH pen / pH 7 buffer. If it reads ~10x off, change scale to 0.1.
+  - id: res-ph-1
+    model: renke
+    address: 6
+    zone: reservoir
+    registers:
+      - {param: reservoir_ph, reg: 0x0000, fc: 3, type: u16, scale: 0.01, unit: pH}
+      - {param: reservoir_temp, reg: 0x0001, fc: 3, type: s16, scale: 0.1, unit: C}
+
+relays:
+  # Cultive owns WATER. Agrowtrack owns AIR (misting, top vent fan, 1 other fan, lights) — never wire those here.
+  # Panel functions go through the contractor's electrician via the AUTO terminals; selector on MANUAL/OFF = override.
+  id: relay-1
+  model: waveshare_relay8
+  address: 10
+  channels:
+    0: {name: test-tray-valve, max_on_s: 300}            # 1" motorized ball valve on the test tray inlet
+    1: {name: drip-irrigation, max_on_s: 1800}
+    2: {name: submersible-pump, max_on_s: 1800,
+        interlock: {param: tank_level_pct, min: 15}}     # never dry-run the pump
+    # 3-7: Bays 1-5 once someone confirms what each bay switch actually runs

@@ -1,0 +1,15 @@
+[Unit]
+Description=Cultive AI edge service (RS485 sensors + relays)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/CultiveAI/edge
+EnvironmentFile=-/home/pi/CultiveAI/edge/.env
+ExecStart=/home/pi/CultiveAI/edge/.venv/bin/python -m cultive_edge.main --config config.yaml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
