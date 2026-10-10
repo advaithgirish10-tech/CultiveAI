@@ -58,6 +58,8 @@ def poll_once(bus, store, cfg, health):
     now = time.time()
     rows = []
     for dev in cfg["devices"]:
+        if not dev.get("enabled", True):
+            continue
         try:
             for param, value, unit in read_device(bus, dev):
                 rows.append((now, site["customer"], site["site"], dev.get("zone"), dev["id"], param, value, unit))

@@ -56,6 +56,7 @@ devices:
 
   # ---- Water tank level: DFRobot URM15 ultrasonic ----
   - id: tank-1
+    enabled: false            # expo: off (optional sensor). Set true once it's addressed to 5
     model: urm15
     address: 5
     zone: reservoir
@@ -66,6 +67,7 @@ devices:
   # ---- Nutrient reservoir pH: Renke RS-PH-N01 (probe sits in the fertigation tank) ----
   # VERIFY on site: compare against a pH pen / pH 7 buffer. If it reads ~10x off, change scale to 0.1.
   - id: res-ph-1
+    enabled: false            # expo: stays home. Set true at the polyhouse
     model: renke
     address: 6
     zone: reservoir
