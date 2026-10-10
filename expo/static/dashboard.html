@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cultive AI · Live</title>
+<style>
+  :root{
+    --bg:#0e1712; --panel:#15211a; --line:#24352b; --ink:#eef3ea; --muted:#8fa395;
+    --leaf:#7fd18b; --leaf-d:#2f6b3a; --amber:#f3b23c; --amber-d:#5a3f0e; --blue:#6cb6ff; --red:#ff7a6b;
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;background:var(--bg);color:var(--ink);
+    font-family:"Inter","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;overflow:hidden}
+  .wrap{height:100vh;display:grid;grid-template-rows:auto auto 1fr auto;gap:2.2vh;padding:3vh 3.2vw}
+  header{display:flex;align-items:baseline;justify-content:space-between}
+  .brand{font-size:3.4vh;font-weight:700;letter-spacing:-.02em}
+  .brand span{color:var(--leaf)}
+  .sub{color:var(--muted);font-size:2vh;margin-left:1.2vw;font-weight:500}
+  .clock{color:var(--muted);font-size:2.2vh;font-variant-numeric:tabular-nums}
+  .live{display:inline-block;width:1.1vh;height:1.1vh;border-radius:50%;background:var(--leaf);margin-right:.6vw;
+    animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{50%{opacity:.25}}
+
+  .banner{border-radius:1.6vh;padding:2.2vh 2.4vw;display:flex;align-items:center;gap:2vw;
+    background:var(--panel);border:1px solid var(--line);transition:background .4s,border-color .4s}
+  .banner .dot{width:2.4vh;height:2.4vh;border-radius:50%;background:var(--leaf);flex:none}
+  .banner .h{font-size:4.2vh;font-weight:700;letter-spacing:-.02em}
+  .banner.asking,.banner.dry{background:var(--amber-d);border-color:var(--amber)}
+  .banner.asking .dot,.banner.dry .dot{background:var(--amber);animation:pulse 1s infinite}
+  .banner.watering,.banner.measuring{background:#0f2e4a;border-color:var(--blue)}
+  .banner.watering .dot,.banner.measuring .dot{background:var(--blue);animation:pulse .7s infinite}
+  .banner.done{background:var(--leaf-d);border-color:var(--leaf)}
+  .banner.offline{border-color:var(--red)} .banner.offline .dot{background:var(--red)}
+
+  .main{display:grid;grid-template-columns:1.25fr 1fr;gap:2.2vw;min-height:0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:1.6vh;padding:2.4vh 1.8vw;min-height:0}
+  .label{color:var(--muted);font-size:1.9vh;font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+  .hero{display:flex;flex-direction:column}
+  .heroval{font-size:16vh;font-weight:800;letter-spacing:-.05em;line-height:1;margin-top:1vh;font-variant-numeric:tabular-nums}
+  .heroval small{font-size:5vh;color:var(--muted);font-weight:600;margin-left:.4vw}
+  .heroval.dry{color:var(--amber)}
+  .hint{color:var(--muted);font-size:2vh;margin-top:.6vh}
+  svg.spark{flex:1;width:100%;min-height:12vh;margin-top:2vh}
+  .tiles{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:1.6vh 1.2vw}
+  .tile .v{font-size:7vh;font-weight:750;letter-spacing:-.03em;margin-top:.6vh;font-variant-numeric:tabular-nums;
+    transition:color .3s}
+  .tile .v small{font-size:2.6vh;color:var(--muted);font-weight:600;margin-left:.3vw}
+  .tile .v.flash{color:var(--leaf)}
+  .tile .note{color:var(--muted);font-size:1.7vh;margin-top:.4vh}
+
+  .loop{display:grid;grid-template-columns:repeat(5,1fr);gap:1vw}
+  .step{border:1px solid var(--line);border-radius:1.2vh;padding:1.4vh 1vw;background:var(--panel);
+    transition:all .35s;opacity:.55}
+  .step b{display:block;font-size:2.3vh}
+  .step span{color:var(--muted);font-size:1.7vh}
+  .step.on{opacity:1;border-color:var(--leaf);box-shadow:inset 0 0 0 1px var(--leaf)}
+  .step.on.amber{border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber)}
+  .step.on.blue{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+  .feed{position:fixed;right:3.2vw;bottom:15vh;width:0;height:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><span class="brand">Cultive<span> AI</span></span><span class="sub" id="zone">Live polyhouse demo</span></div>
+    <div class="clock"><span class="live"></span><span id="clock">--:--:--</span></div>
+  </header>
+
+  <div class="banner" id="banner"><div class="dot"></div><div class="h" id="headline">Connecting…</div></div>
+
+  <div class="main">
+    <div class="card hero">
+      <div class="label">Pot moisture · soil probe <span style="float:right;color:var(--amber);text-transform:none;letter-spacing:0">- - - water line</span></div>
+      <div class="heroval" id="moist">--<small>%</small></div>
+      <div class="hint" id="moistHint">Waters automatically below --%, with your approval</div>
+      <svg class="spark" id="spark" viewBox="0 0 600 160" preserveAspectRatio="none"></svg>
+    </div>
+    <div class="tiles">
+      <div class="card tile"><div class="label">Air temperature</div><div class="v" id="t_air">--<small>°C</small></div><div class="note">Breathe on the sensor</div></div>
+      <div class="card tile"><div class="label">Humidity</div><div class="v" id="t_hum">--<small>%</small></div><div class="note">Anthuriums like 70–85%</div></div>
+      <div class="card tile"><div class="label">Light</div><div class="v" id="t_lux">--<small>lux</small></div><div class="note">Cover it with your hand</div></div>
+      <div class="card tile"><div class="label">Water tank</div><div class="v" id="t_tank">--<small>%</small></div><div class="note">Pump never runs it dry</div></div>
+    </div>
+  </div>
+
+  <div class="loop">
+    <div class="step" id="s1"><b>1 · Sense</b><span>Sensors read every 2 s</span></div>
+    <div class="step" id="s2"><b>2 · Understand</b><span>Pot below the safe line</span></div>
+    <div class="step" id="s3"><b>3 · Ask</b><span>WhatsApp: approve?</span></div>
+    <div class="step" id="s4"><b>4 · Act</b><span>Valve opens, closes itself</span></div>
+    <div class="step" id="s5"><b>5 · Measure</b><span>Result logged as data</span></div>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const fmt = (v, d=0) => v === null || v === undefined ? "--" : Number(v).toLocaleString("en-IN",{maximumFractionDigits:d,minimumFractionDigits:d});
+let prev = {};
+function setVal(id, v, d, unit){
+  const el = $(id); const s = fmt(v,d);
+  if (prev[id] !== undefined && prev[id] !== s){ el.classList.add("flash"); setTimeout(()=>el.classList.remove("flash"),600); }
+  prev[id] = s; el.innerHTML = s + `<small>${unit}</small>`;
+}
+function spark(hist, dry){
+  const svg = $("spark"); if (!hist.length){ svg.innerHTML = ""; return; }
+  const vs = hist.map(h=>h[1]); const lo = Math.min(dry-5, ...vs), hi = Math.max(dry+10, ...vs);
+  const t0 = hist[0][0], t1 = Math.max(hist[hist.length-1][0], t0+1);
+  const X = t => (t-t0)/(t1-t0)*600, Y = v => 150 - (v-lo)/(hi-lo)*140;
+  const pts = hist.map(h=>`${X(h[0]).toFixed(1)},${Y(h[1]).toFixed(1)}`).join(" ");
+  svg.innerHTML =
+    `<line x1="0" x2="600" y1="${Y(dry)}" y2="${Y(dry)}" stroke="#f3b23c" stroke-dasharray="6 6" stroke-width="2" opacity=".7"/>`+
+    `<polyline points="0,160 ${pts} 600,160" fill="#7fd18b" opacity=".12" stroke="none"/>`+
+    `<polyline points="${pts}" fill="none" stroke="#7fd18b" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`;
+}
+const STEPS = {ok:[1], offline:[], dry:[1,2], asking:[1,2,3], watering:[4], measuring:[4,5], done:[5]};
+async function tick(){
+  try{
+    const s = await (await fetch("/api/state",{cache:"no-store"})).json();
+    const v = s.values;
+    $("zone").textContent = s.zone + " · live";
+    $("banner").className = "banner " + s.phase;
+    $("headline").textContent = s.headline;
+    setVal("moist", v.soil_moisture, 0, "%");
+    $("moist").classList.toggle("dry", v.soil_moisture !== null && v.soil_moisture < s.dry_below);
+    $("moistHint").textContent = `Asks to water below ${s.dry_below}%, only waters when a person approves`;
+    setVal("t_air", v.air_temp, 1, "°C");
+    setVal("t_hum", v.air_humidity, 0, "%");
+    setVal("t_lux", v.light_lux, 0, "lux");
+    setVal("t_tank", v.tank_level_pct, 0, "%");
+    spark(s.moisture_history, s.dry_below);
+    const on = STEPS[s.phase] || [];
+    for (let i=1;i<=5;i++){
+      const el = $("s"+i); el.className = "step" + (on.includes(i) ? " on" : "");
+      if (on.includes(i) && (s.phase==="asking"||s.phase==="dry")) el.classList.add("amber");
+      if (on.includes(i) && (s.phase==="watering"||s.phase==="measuring")) el.classList.add("blue");
+    }
+  }catch(e){ $("headline").textContent = "Reconnecting to the Pi…"; $("banner").className="banner offline"; }
+}
+setInterval(()=>{ $("clock").textContent = new Date().toLocaleTimeString("en-IN",{hour12:false}); },1000);
+setInterval(tick, 1500); tick();
+</script>
+</body>
+</html>

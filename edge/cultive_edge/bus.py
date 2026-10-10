@@ -1,5 +1,6 @@
 """RS485 Modbus RTU bus access, plus a simulated bus for working without hardware."""
 import math
+import os
 import random
 import time
 
@@ -71,8 +72,11 @@ class SimBus:
     def _value(self, param):
         h = (time.localtime().tm_hour + time.localtime().tm_min / 60)
         day = max(0.0, math.sin((h - 6) / 12 * math.pi))
+        if os.path.exists("data/sim_dry"):  # expo operator panel: "simulate a dry pot"
+            os.remove("data/sim_dry")
+            self.soil = 15.0
         valve_on = any(self.coils.values())
-        self.soil += 0.4 if valve_on else -0.01
+        self.soil += 0.4 if valve_on else -0.005
         self.soil = min(max(self.soil, 12), 45)
         n = random.gauss
         return {

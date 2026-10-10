@@ -1,0 +1,14 @@
+[Unit]
+Description=Cultive AI expo app (TV dashboard, rules, WhatsApp approvals)
+After=network-online.target cultive-edge.service
+Wants=network-online.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/CultiveAI
+ExecStart=/home/pi/CultiveAI/edge/.venv/bin/python expo/app.py --config edge/config.yaml --env .env --port 8080
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

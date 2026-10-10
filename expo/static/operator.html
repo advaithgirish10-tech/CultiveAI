@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cultive · Operator</title>
+<style>
+  :root{--bg:#f6f7f4;--ink:#1d2a21;--muted:#66756b;--line:#dfe4dc;--leaf:#2f7d3e;--amber:#b7791f;--red:#c0392b;--blue:#1f6fb2}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Inter","Segoe UI",system-ui,sans-serif;font-size:15px}
+  main{max-width:880px;margin:0 auto;padding:24px 16px 48px}
+  h1{font-size:20px;margin:0 0 4px}
+  .muted{color:var(--muted)}
+  .row{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;flex:1;min-width:240px}
+  .phase{font-size:18px;font-weight:700}
+  button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:14px 18px;cursor:pointer;color:#fff;background:var(--leaf)}
+  button.amber{background:var(--amber)} button.red{background:var(--red)} button.grey{background:#5d6b62} button.blue{background:var(--blue)}
+  button:active{transform:translateY(1px)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  td,th{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#eef1ec}
+  .ok{color:var(--leaf)} .bad{color:var(--red)}
+  #toast{min-height:20px;margin-top:8px;font-weight:600}
+</style>
+</head>
+<body>
+<main>
+  <h1>Operator panel</h1>
+  <div class="muted">Laptop only. Visitors see the TV at <code>/</code>.</div>
+
+  <div class="row">
+    <div class="card"><div class="muted">Status</div><div class="phase" id="phase">…</div><div id="headline" class="muted"></div></div>
+    <div class="card"><div class="muted">WhatsApp</div><div class="phase" id="wa">…</div><div class="muted" id="err"></div></div>
+    <div class="card"><div class="muted">Pot moisture</div><div class="phase" id="moist">--</div><div class="muted" id="dev"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="grid">
+      <button class="amber" onclick="post('/api/ask')">1 · Send WhatsApp ask now</button>
+      <button onclick="post('/api/approve')">2 · Approve here (fallback)</button>
+      <button class="grey" onclick="post('/api/ignore')">Ignore open ask</button>
+      <button class="red" onclick="post('/api/stop')">Stop valve now</button>
+      <button class="blue" onclick="post('/api/wa/test')">Send WhatsApp test</button>
+      <button class="grey" onclick="post('/api/sim/dry')">Simulator: dry the pot</button>
+    </div>
+    <div id="toast"></div>
+  </div>
+
+  <div class="row">
+    <div class="card"><b>Recent asks</b><table id="asks"></table></div>
+    <div class="card"><b>Valve actions</b><table id="acts"></table></div>
+  </div>
+
+  <div class="card muted">
+    <b class="ok">Demo script, 60 seconds</b><br>
+    1. "This pot has a soil probe. Cover the light sensor… breathe on this one." (live tiles move)<br>
+    2. Press <b>Send WhatsApp ask now</b>, or wait for the pot to cross the line.<br>
+    3. Hand the visitor your phone and let them tap <b>Approve</b>.<br>
+    4. Valve clicks, water flows for 20 s and stops by itself. The screen shows moisture rising.<br>
+    5. "Every decision and its result is logged. That's the data most farm systems never collect."
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const t = ts => new Date(ts*1000).toLocaleTimeString("en-IN",{hour12:false});
+async function post(url){
+  const r = await (await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"})).json();
+  $("toast").textContent = r.info || (r.ok ? "Done" : "Failed");
+  $("toast").className = r.ok === false ? "bad" : "ok";
+  refresh();
+}
+async function refresh(){
+  const s = await (await fetch("/api/state",{cache:"no-store"})).json();
+  $("phase").textContent = s.phase; $("headline").textContent = s.headline;
+  $("wa").textContent = s.whatsapp; $("wa").className = "phase " + (s.whatsapp==="ready"?"ok":"bad");
+  $("err").textContent = s.last_error || "";
+  $("moist").textContent = s.values.soil_moisture === null ? "--" : s.values.soil_moisture.toFixed(1) + " %";
+  $("dev").textContent = s.offline_devices.length ? "Offline: " + s.offline_devices.join(", ") : "All sensors online";
+  $("asks").innerHTML = "<tr><th>#</th><th>Time</th><th>Status</th><th>Before → after</th><th>By</th></tr>" +
+    s.asks.map(a=>`<tr><td>${a.id}</td><td>${t(a.ts)}</td><td><span class="pill">${a.status}</span></td>
+      <td>${a.before==null?"--":a.before.toFixed(0)}% → ${a.after==null?"--":a.after.toFixed(0)+"%"}</td><td>${a.by||""}</td></tr>`).join("");
+  $("acts").innerHTML = "<tr><th>Time</th><th>What</th><th>Source</th></tr>" +
+    s.actions.map(a=>`<tr><td>${t(a.ts)}</td><td>${a.name} ${a.state}${a.dur?" "+a.dur+"s":""}</td><td>${a.source}</td></tr>`).join("");
+}
+setInterval(refresh, 2000); refresh();
+</script>
+</body>
+</html>

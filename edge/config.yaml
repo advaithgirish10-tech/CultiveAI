@@ -85,3 +85,14 @@ relays:
     2: {name: submersible-pump, max_on_s: 1800,
         interlock: {param: tank_level_pct, min: 15}}     # never dry-run the pump
     # 3-7: Bays 1-5 once someone confirms what each bay switch actually runs
+
+# ---- Expo demo (used by expo/app.py) ----
+# Run the edge service with --interval 2 at the expo so readings feel live.
+expo:
+  zone_name: Anthurium demo tray
+  valve_channel: 0      # relay channel the demo valve is wired to
+  water_s: 20           # how long one approved watering runs
+  dry_below: 25         # pot moisture % that triggers a WhatsApp ask
+  cooldown_s: 120       # minimum gap between automatic asks
+  ask_expire_s: 300     # unanswered asks expire after this
+  settle_s: 30          # wait after watering before measuring the result
