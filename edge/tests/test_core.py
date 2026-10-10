@@ -48,3 +48,31 @@ def test_pump_interlock():
     st.add_readings([(now, "c", "s", "reservoir", "tank-1", "tank_level_pct", 12.0, "%")])
     r.enforce_deadlines()                                                      # tank dropped mid-run
     assert bus.coils[2] is False
+
+
+def test_multibus_routes_by_address_and_dead_port_fails_cleanly():
+    from cultive_edge.bus import BusError, DeadBus, MultiBus
+
+    class Fake:
+        def __init__(self, name):
+            self.name, self.calls = name, []
+
+        def read(self, unit, reg, count=1, fc=3):
+            self.calls.append(unit)
+            return [unit]
+
+        def close(self):
+            pass
+
+    main, lux = Fake("main"), Fake("lux")
+    mb = MultiBus(main, {1: lux})
+    assert mb.read(1, 0) == [1] and lux.calls == [1]
+    assert mb.read(4, 0) == [4] and main.calls == [4]
+
+    mb2 = MultiBus(main, {1: DeadBus("/dev/x", "missing")})
+    try:
+        mb2.read(1, 0)
+        assert False, "expected BusError"
+    except BusError:
+        pass
+    mb.close()

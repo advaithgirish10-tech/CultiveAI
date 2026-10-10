@@ -11,6 +11,13 @@ serial:
   parity: N
   stopbits: 1
   timeout: 1.0
+  # Optional: devices that need their OWN USB-RS485 adapter (e.g. the lux sensor, which also
+  # streams ASCII text nonstop and would garble a shared bus). Find stable port names with:
+  #   ls -l /dev/serial/by-path/
+  # Uncomment once adapter #2 is plugged in:
+  # extra_ports:
+  #   - port: /dev/serial/by-path/REPLACE-ME   # adapter #2
+  #     units: [1]                             # lux sensor
 
 poll_interval_s: 60
 offline_after_failures: 3   # consecutive failed reads before a device is marked offline
@@ -39,9 +46,8 @@ devices:
     address: 1
     zone: test-tray-1
     registers:
-      # VERIFY in direct sun: value is lux x10 in a 16-bit register, which would cap at 6553.5 lux.
-      # If midday readings flatline near 6553 or wrap around, switch type to u32 or u32_lowfirst (reads regs 0-1).
-      - {param: light_lux, reg: 0x0000, fc: 3, type: u16, scale: 0.1, unit: lux}
+      # Verified 10 Oct with a torch: reg 0 is plain lux (62 -> 19913), reg 2 = 65000 (range max).
+      - {param: light_lux, reg: 0x0000, fc: 3, type: u16, scale: 1, unit: lux}
 
   # ---- Pot substrate: Renke RS-ECTHPH-N01-TR-1 (4-in-1), probe inside ONE representative pot ----
   # In potting mix (cocopeat etc.) absolute values are off; use it as a trend + proof a flood cycle ran.

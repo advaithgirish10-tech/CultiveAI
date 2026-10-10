@@ -12,7 +12,7 @@ import urllib.request
 
 import yaml
 
-from .bus import BusError, ModbusBus, SimBus
+from .bus import BusError, DeadBus, ModbusBus, MultiBus, SimBus
 from .devices import read_device
 from .relay import RelayController
 from .store import Store
@@ -30,7 +30,24 @@ def make_bus(cfg):
         log.warning("SIMULATION MODE — readings are fake")
         return SimBus(cfg["devices"])
     s = cfg["serial"]
-    return ModbusBus(s["port"], s["baudrate"], s.get("parity", "N"), s.get("stopbits", 1), s.get("timeout", 1.0))
+
+    def open_port(port):
+        return ModbusBus(port, s["baudrate"], s.get("parity", "N"), s.get("stopbits", 1), s.get("timeout", 1.0))
+
+    main = open_port(s["port"])
+    extra = s.get("extra_ports") or []
+    if not extra:
+        return main
+    routes = {}
+    for x in extra:
+        try:
+            b = open_port(x["port"])
+        except BusError as e:
+            log.warning("extra port %s not available (%s); its devices will show offline", x["port"], e)
+            b = DeadBus(x["port"], e)
+        for unit in x.get("units", []):
+            routes[int(unit)] = b
+    return MultiBus(main, routes)
 
 
 def upload(store, cfg):

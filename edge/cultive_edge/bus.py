@@ -69,6 +69,48 @@ class ModbusBus:
         self.client.close()
 
 
+class DeadBus:
+    """Stands in for an adapter that isn't plugged in: every call fails like a silent device."""
+
+    def __init__(self, port, why):
+        self.port, self.why = port, why
+
+    def _fail(self, unit, *_a, **_k):
+        raise BusError(f"unit {unit}: port {self.port} unavailable ({self.why})")
+
+    read = write_register = write_coil = read_coils = _fail
+
+    def close(self):
+        pass
+
+
+class MultiBus:
+    """Several RS485 adapters, one per port. Calls are routed by device address
+    (addresses are unique across the whole site). Unlisted addresses use the main port."""
+
+    def __init__(self, main, routes):
+        self.main, self.routes = main, routes          # routes: {unit: bus}
+
+    def _bus(self, unit):
+        return self.routes.get(unit, self.main)
+
+    def read(self, unit, *a, **k):
+        return self._bus(unit).read(unit, *a, **k)
+
+    def write_register(self, unit, *a, **k):
+        return self._bus(unit).write_register(unit, *a, **k)
+
+    def write_coil(self, unit, *a, **k):
+        return self._bus(unit).write_coil(unit, *a, **k)
+
+    def read_coils(self, unit, *a, **k):
+        return self._bus(unit).read_coils(unit, *a, **k)
+
+    def close(self):
+        for b in {id(b): b for b in [self.main, *self.routes.values()]}.values():
+            b.close()
+
+
 class SimBus:
     """Fake bus with plausible polyhouse readings (day/night cycle, drying soil)."""
 

@@ -30,7 +30,7 @@ Beta site: family polyhouse in Trissur, Kerala. Potted anthuriums on ebb-and-flo
 | Device | Address | Notes |
 |---|---|---|
 | MD02 (SHT20) air temperature/humidity | 2 | input regs 1–2, fc4; some batches need 2 stop bits |
-| Wittelb WIN-SN-LUX-M lux | 1 | kept at its factory address 1 @ 9600 (jumper-set, "SLAVE ID SEL"). Label says 0–65,000 lux; confirm scaling with `tools/peek.py 1` |
+| Wittelb WIN-SN-LUX-M lux | 1 | factory address 1 @ 9600, jumper-set. Reg 0 = plain lux (scale 1), reg 2 = 65000 range. **Also streams ASCII lux text ~10×/s on RS485**, which can garble a shared bus → give it its own adapter via `serial.extra_ports` in config.yaml (routing by address) |
 | Renke 4-in-1 soil probe | 4 | factory default 1 @ 4800. Regs 0–3: moisture ×0.1, temp s16 ×0.1, EC, pH ×0.1 |
 | DFRobot URM15 ultrasonic | 5 | factory default 15 @ 19200. Minimum range 30 cm, rated RH < 75%. Disabled for the expo |
 | Renke water pH | 6 | disabled, stays at the polyhouse |
@@ -45,7 +45,7 @@ Known risks: gravity flow through the ¼" valve may only trickle (backup: 12V mi
 
 ## Status (10 Oct 2026)
 - Pi 5 flashed (hostname `cultive`, user `pi`), repo cloned, simulator verified on the Pi.
-- Lux sensor answers at address 1 @ 9600.
+- Lux sensor answers at address 1 @ 9600; verified with a torch. It chatters ASCII nonstop: second USB-RS485 adapter ordered; Wittelb asked how to disable it.
 - Next: soil probe → 4, MD02 → 2, relay → 10, then chain the bus, real readings on the dashboard, wire the valve.
 
 ## Later (after the expo)
