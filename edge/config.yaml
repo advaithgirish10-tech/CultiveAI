@@ -32,10 +32,11 @@ devices:
       - {param: air_temp, reg: 0x0001, fc: 4, type: s16, scale: 0.1, unit: C}
       - {param: air_humidity, reg: 0x0002, fc: 4, type: u16, scale: 0.1, unit: "%RH"}
 
-  # ---- Light: Wittelb WIN-SN-LUX-M (address set by DIP switch, not software) ----
+  # ---- Light: Wittelb WIN-SN-LUX-M (address set by jumpers on the board, not software) ----
+  # Found at factory address 1 @ 9600 on 10 Oct; kept at 1 (no other device uses 1 after addressing).
   - id: light-1
     model: wittelb_lux
-    address: 3
+    address: 1
     zone: test-tray-1
     registers:
       # VERIFY in direct sun: value is lux x10 in a 16-bit register, which would cap at 6553.5 lux.

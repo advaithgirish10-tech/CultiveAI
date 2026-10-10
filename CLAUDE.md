@@ -19,7 +19,7 @@ Beta site: family polyhouse in Trissur, Kerala. Potted anthuriums on ebb-and-flo
   - `cultive_edge/store.py`: tables readings, device_events, actions, events, commands
   - `cultive_edge/relay.py`: all OFF at start/stop, max_on_s caps, deadlines, pump interlock (tank ≥ 15%; missing/stale data counts as unsafe)
   - `cultive_edge/main.py`: poll loop. Flags: `--simulate --interval N --cycles N --config`
-  - `tools/`: `scan.py`, `setaddr.py` (one device at a time), `relay.py` (queues a command), `status.py`
+  - `tools/`: `scan.py`, `setaddr.py` (one device at a time), `peek.py` (raw registers), `relay.py` (queues a command), `status.py`
   - `config.yaml`: devices, relays and the `expo:` block. Devices with `enabled: false` are skipped
 - `expo/`: demo app for the 16 Oct 2026 agri-tech expo. Flask on :8080. It never touches serial; it queues commands to the edge service.
   - `/` TV dashboard, `/operator` laptop panel, `/webhook` for WhatsApp Cloud API buttons (approve:/ignore:)
@@ -30,7 +30,7 @@ Beta site: family polyhouse in Trissur, Kerala. Potted anthuriums on ebb-and-flo
 | Device | Address | Notes |
 |---|---|---|
 | MD02 (SHT20) air temperature/humidity | 2 | input regs 1–2, fc4; some batches need 2 stop bits |
-| Wittelb WIN-SN-LUX-M lux | 3 | set by DIP switch (1+2 up, 3+4 down). Label says 0–65,000 lux; check whether the u16 ×0.1 reading caps at 6553.5 |
+| Wittelb WIN-SN-LUX-M lux | 1 | kept at its factory address 1 @ 9600 (jumper-set, "SLAVE ID SEL"). Label says 0–65,000 lux; confirm scaling with `tools/peek.py 1` |
 | Renke 4-in-1 soil probe | 4 | factory default 1 @ 4800. Regs 0–3: moisture ×0.1, temp s16 ×0.1, EC, pH ×0.1 |
 | DFRobot URM15 ultrasonic | 5 | factory default 15 @ 19200. Minimum range 30 cm, rated RH < 75%. Disabled for the expo |
 | Renke water pH | 6 | disabled, stays at the polyhouse |
@@ -45,7 +45,8 @@ Known risks: gravity flow through the ¼" valve may only trickle (backup: 12V mi
 
 ## Status (10 Oct 2026)
 - Pi 5 flashed (hostname `cultive`, user `pi`), repo cloned, simulator verified on the Pi.
-- Next: address the real sensors, chain the bus, show real readings on the dashboard, wire the valve.
+- Lux sensor answers at address 1 @ 9600.
+- Next: soil probe → 4, MD02 → 2, relay → 10, then chain the bus, real readings on the dashboard, wire the valve.
 
 ## Later (after the expo)
 Cloud: Supabase Postgres, Mumbai region (no TimescaleDB, use partitions/rollups). Supabase Auth + RLS, Edge Functions, the Pi pulls commands (no open ports), Vercel dashboard. Multi-tenant org → site → zone → device.

@@ -22,6 +22,15 @@ class BusError(Exception):
     pass
 
 
+def _call(fn, unit, *args, **kw):
+    """Newer pymodbus raises on timeouts instead of returning an error; turn both into BusError."""
+    from pymodbus.exceptions import ModbusException
+    try:
+        return _with_unit(fn, unit, *args, **kw)
+    except ModbusException as e:
+        raise BusError(f"unit {unit}: {e}") from e
+
+
 class ModbusBus:
     def __init__(self, port, baudrate=9600, parity="N", stopbits=1, timeout=1.0):
         from pymodbus.client import ModbusSerialClient
@@ -35,23 +44,23 @@ class ModbusBus:
 
     def read(self, unit, reg, count=1, fc=3):
         fn = self.client.read_holding_registers if fc == 3 else self.client.read_input_registers
-        rr = _with_unit(fn, unit, reg, count=count)
+        rr = _call(fn, unit, reg, count=count)
         if rr.isError():
             raise BusError(f"unit {unit} reg {reg:#06x}: {rr}")
         return list(rr.registers)
 
     def write_register(self, unit, reg, value):
-        rr = _with_unit(self.client.write_register, unit, reg, value)
+        rr = _call(self.client.write_register, unit, reg, value)
         if rr.isError():
             raise BusError(f"unit {unit} write reg {reg:#06x}: {rr}")
 
     def write_coil(self, unit, coil, on):
-        rr = _with_unit(self.client.write_coil, unit, coil, bool(on))
+        rr = _call(self.client.write_coil, unit, coil, bool(on))
         if rr.isError():
             raise BusError(f"unit {unit} coil {coil}: {rr}")
 
     def read_coils(self, unit, start, count):
-        rr = _with_unit(self.client.read_coils, unit, start, count=count)
+        rr = _call(self.client.read_coils, unit, start, count=count)
         if rr.isError():
             raise BusError(f"unit {unit} coils: {rr}")
         return list(rr.bits[:count])
