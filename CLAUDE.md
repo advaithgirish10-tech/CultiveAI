@@ -47,7 +47,7 @@ Known risks: gravity flow through the ¼" valve may only trickle (backup: 12V mi
 - Pi 5 re-flashed 11 Oct (Raspberry Pi OS Lite 64-bit, Debian 13 Trixie, Python 3.13, pymodbus 3.15); hostname `cultive`, user `pi`; repo cloned; simulator + dashboard verified.
 - All 4 devices addressed and verified alone on the bus (addresses live inside the devices, not on the Pi): lux 1, MD02 2, soil probe 4, relay 10. All at 9600.
 - Lux and MD02 stream ASCII text on RS485, so each now has its own CH340 adapter (config `serial.extra_ports`, by-path names). Main adapter: probe 4 + relay 10. Verified 13 Oct: lux, MD02 and probe all read on their ports.
-- Valve and mini pump not yet tested on 12V. Relay not yet click-tested.
+- Expo uses the mini PUMP on relay CH1 (channel 0, 10 s per approval) and a mini FAN on CH2 (channel 1). Fan rule: humidity >= 8 points above its 3-min normal (someone breathes on the MD02) -> fan 20 s, 40 s cooldown. No tank sensor at the expo: bucket must stay full. Relay safety tests use their own channel map, not config.yaml.
 - Next: relay on the main adapter, real readings on the dashboard, valve through relay CH1, flow test, WhatsApp setup.
 
 ## Later (after the expo)

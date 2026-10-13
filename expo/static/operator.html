@@ -41,12 +41,15 @@
       <button class="amber" onclick="post('/api/ask')">1 · Send WhatsApp ask now</button>
       <button onclick="post('/api/approve')">2 · Approve here (fallback)</button>
       <button class="grey" onclick="post('/api/ignore')">Ignore open ask</button>
-      <button class="red" onclick="post('/api/stop')">Stop valve now</button>
+      <button class="red" onclick="post('/api/stop')">Stop pump now</button>
+      <button class="blue" onclick="post('/api/fan')">Fan 20 s (test)</button>
       <button class="blue" onclick="post('/api/wa/test')">Send WhatsApp test</button>
       <button class="grey" onclick="post('/api/sim/dry')">Simulator: dry the pot</button>
     </div>
     <div id="toast"></div>
   </div>
+
+  <div class="card" style="margin-top:12px;border-color:#c0392b"><b class="bad">Pump safety:</b> there is no tank sensor at the expo. Keep the bucket full and the pump under water. Never run it dry.</div>
 
   <div class="row">
     <div class="card"><b>Recent asks</b><table id="asks"></table></div>
@@ -58,7 +61,8 @@
     1. "This pot has a soil probe. Cover the light sensor… breathe on this one." (live tiles move)<br>
     2. Press <b>Send WhatsApp ask now</b>, or wait for the pot to cross the line.<br>
     3. Hand the visitor your phone and let them tap <b>Approve</b>.<br>
-    4. Valve clicks, water flows for 20 s and stops by itself. The screen shows moisture rising.<br>
+    4. Pump runs, water flows for 10 s and stops by itself. The screen shows moisture rising.<br>
+    Bonus: "Breathe on the air sensor" and the fan turns on by itself when humidity jumps.<br>
     5. "Every decision and its result is logged. That's the data most farm systems never collect."
   </div>
 </main>

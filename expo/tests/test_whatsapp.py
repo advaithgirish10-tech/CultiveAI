@@ -26,3 +26,25 @@ def test_parse():
         {"from": "9", "type": "text", "text": {"body": "hello"}}]}}]}]}
     assert list(whatsapp.parse_webhook(body)) == [("ignore", 3, "9"), ("approve", None, "9")]
     assert list(whatsapp.parse_webhook({"entry": [{"changes": [{"value": {"statuses": []}}]}]})) == []
+
+
+def test_fan_rule_triggers_on_humidity_jump(tmp_path):
+    import time
+    import app as expo_app
+    sys_path_edge = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "edge")
+    sys.path.insert(0, sys_path_edge)
+    from cultive_edge.store import Store
+    db = str(tmp_path / "t.db")
+    st = Store(db)
+    now = time.time()
+    st.add_readings([(now - 120 + i * 10, "c", "s", "z", "air-1", "air_humidity", 44.0, "%") for i in range(10)])
+    eng = expo_app.Engine(db, {"fan_channel": 1, "fan_s": 20, "fan_rise": 8})
+    eng.fan_tick(time.time())
+    assert eng.fan_until == 0                                       # normal humidity: no fan
+    st.add_readings([(time.time(), "c", "s", "z", "air-1", "air_humidity", 80.0, "%")])
+    eng.fan_tick(time.time())
+    assert eng.fan_until > time.time()                              # breath on the sensor: fan on
+    cmds = st.pending_commands()
+    assert any(c[1] == 1 and c[2] == "on" for c in cmds)
+    ok, info = eng.fan_on("again")
+    assert not ok                                                   # no double trigger while running

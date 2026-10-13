@@ -19,11 +19,18 @@ def test_devices_and_tank():
     out = {p: v for p, v, _ in read_device(bus, tank)}
     assert 55 < out["tank_level_cm"] < 65 and "tank_level_pct" in out
 
+# Relay safety is tested against a fixed channel map, independent of whatever config.yaml is wired for.
+RELAYS = {"address": 10, "channels": {
+    0: {"name": "valve", "max_on_s": 300},
+    1: {"name": "drip", "max_on_s": 1800},
+    2: {"name": "pump", "max_on_s": 1800, "interlock": {"param": "tank_level_pct", "min": 15}}}}
+
+
 def test_relay_cap_and_autooff():
     cfg = yaml.safe_load(open(os.path.join(ROOT, "config.yaml")))
     st = Store(os.path.join(tempfile.mkdtemp(), "t.db"))
     bus = SimBus(cfg["devices"])
-    r = RelayController(bus, st, cfg["relays"], logging.getLogger())
+    r = RelayController(bus, st, RELAYS, logging.getLogger())
     assert r.set(0, True, 9999) == "on for 300s"          # capped at max_on_s
     assert r.set(5, True, 10).startswith("rejected")      # unconfigured channel
     r.deadlines[0] = time.time() - 1
@@ -38,7 +45,7 @@ def test_pump_interlock():
     cfg = yaml.safe_load(open(os.path.join(ROOT, "config.yaml")))
     st = Store(os.path.join(tempfile.mkdtemp(), "t.db"))
     bus = SimBus(cfg["devices"])
-    r = RelayController(bus, st, cfg["relays"], logging.getLogger())
+    r = RelayController(bus, st, RELAYS, logging.getLogger())
     assert r.set(2, True, 60).startswith("rejected: interlock: no recent")   # no data = not safe
     now = time.time()
     st.add_readings([(now, "c", "s", "reservoir", "tank-1", "tank_level_pct", 10.0, "%")])

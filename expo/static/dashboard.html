@@ -80,7 +80,7 @@
       <div class="card tile"><div class="label">Air temperature</div><div class="v" id="t_air">--<small>°C</small></div><div class="note">Breathe on the sensor</div></div>
       <div class="card tile"><div class="label">Humidity</div><div class="v" id="t_hum">--<small>%</small></div><div class="note">Anthuriums like 70–85%</div></div>
       <div class="card tile"><div class="label">Light</div><div class="v" id="t_lux">--<small>lux</small></div><div class="note">Cover it with your hand</div></div>
-      <div class="card tile"><div class="label">Water tank</div><div class="v" id="t_tank">--<small>%</small></div><div class="note">Pump never runs it dry</div></div>
+      <div class="card tile" id="fanTile"><div class="label">Fan</div><div class="v" id="t_fan">Off</div><div class="note" id="fanNote">Breathe on the air sensor</div></div>
     </div>
   </div>
 
@@ -88,7 +88,7 @@
     <div class="step" id="s1"><b>1 · Sense</b><span>Sensors read every 2 s</span></div>
     <div class="step" id="s2"><b>2 · Understand</b><span>Pot below the safe line</span></div>
     <div class="step" id="s3"><b>3 · Ask</b><span>WhatsApp: approve?</span></div>
-    <div class="step" id="s4"><b>4 · Act</b><span>Valve opens, closes itself</span></div>
+    <div class="step" id="s4"><b>4 · Act</b><span>Pump runs, stops itself</span></div>
     <div class="step" id="s5"><b>5 · Measure</b><span>Result logged as data</span></div>
   </div>
 </div>
@@ -126,7 +126,10 @@ async function tick(){
     setVal("t_air", v.air_temp, 1, "°C");
     setVal("t_hum", v.air_humidity, 0, "%");
     setVal("t_lux", v.light_lux, 0, "lux");
-    setVal("t_tank", v.tank_level_pct, 0, "%");
+    const f = s.fan || {};
+    $("t_fan").innerHTML = f.on ? `On<small>${f.left}s</small>` : "Off";
+    $("t_fan").classList.toggle("flash", !!f.on);
+    $("fanNote").textContent = f.on ? (f.reason || "Running") : "Breathe on the air sensor";
     spark(s.moisture_history, s.dry_below);
     const on = STEPS[s.phase] || [];
     for (let i=1;i<=5;i++){

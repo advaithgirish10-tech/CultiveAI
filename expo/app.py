@@ -26,7 +26,9 @@ import whatsapp  # noqa: E402
 log = logging.getLogger("expo")
 
 DEFAULTS = {"valve_channel": 0, "water_s": 20, "dry_below": 25.0, "cooldown_s": 120,
-            "ask_expire_s": 300, "settle_s": 30, "zone_name": "Anthurium demo tray"}
+            "ask_expire_s": 300, "settle_s": 30, "zone_name": "Anthurium demo tray",
+            # fan rule: humidity jumps above its recent normal (e.g. someone breathes on the sensor)
+            "fan_channel": None, "fan_s": 20, "fan_rise": 8.0, "fan_cooldown_s": 40}
 
 ASK_SCHEMA = """
 CREATE TABLE IF NOT EXISTS asks (
@@ -54,6 +56,8 @@ class Engine:
         self.o = {**DEFAULTS, **(opts or {})}
         self.lock = threading.Lock()
         self.last_error = ""
+        self.fan_until = 0.0
+        self.fan_reason = ""
         with self.conn() as c:
             c.executescript(ASK_SCHEMA)
 
@@ -123,9 +127,38 @@ class Engine:
             # an open watering ask moves straight to "measuring" so the TV doesn't show a stale countdown
             c.execute("UPDATE asks SET resolved_ts=? WHERE status='watering'", (time.time() - self.o["water_s"],))
 
+    def fan_on(self, reason, by="rule"):
+        if self.o.get("fan_channel") is None:
+            return False, "no fan configured"
+        now = time.time()
+        if now < self.fan_until:
+            return False, "fan already running"
+        with self.conn() as c:
+            c.execute("INSERT INTO commands(ts,channel,state,duration_s,source,reason) VALUES (?,?,?,?,?,?)",
+                      (now, self.o["fan_channel"], "on", self.o["fan_s"], by, reason))
+        self.fan_until, self.fan_reason = now + self.o["fan_s"], reason
+        log.info("fan on %ss (%s, by %s)", self.o["fan_s"], reason, by)
+        return True, f"fan on for {self.o['fan_s']}s"
+
+    def fan_tick(self, now):
+        """Humidity well above its normal of the last few minutes -> run the fan once, then cool down."""
+        if self.o.get("fan_channel") is None or now < self.fan_until + self.o["fan_cooldown_s"]:
+            return
+        with self.conn() as c:
+            cur = self.latest(c, "air_humidity", max_age=15)
+            base = [r[0] for r in c.execute(
+                "SELECT value FROM readings WHERE param='air_humidity' AND ts BETWEEN ? AND ? ORDER BY value",
+                (now - 180, now - 15)).fetchall()]
+        if cur is None or len(base) < 5:
+            return
+        normal = base[len(base) // 2]
+        if cur - normal >= self.o["fan_rise"]:
+            self.fan_on(f"humidity {cur:.0f}%, {cur - normal:.0f} points above normal")
+
     # ---------- the rules loop ----------
     def tick(self):
         now = time.time()
+        self.fan_tick(now)
         with self.conn() as c:
             ask = self.current_ask(c)
             m = self.latest(c, "soil_moisture")
@@ -204,6 +237,9 @@ class Engine:
             "actions": [dict(ts=a[0], name=a[1], state=a[2], dur=a[3], source=a[4], reason=a[5]) for a in acts],
             "asks": [dict(id=a[0], ts=a[1], status=a[2], before=a[3], after=a[4], by=a[5], wa=a[6]) for a in asks],
             "offline_devices": [d[0] for d in dev if d[1] == "offline"],
+            "fan": {"configured": self.o.get("fan_channel") is not None,
+                    "on": now < self.fan_until, "left": max(0, round(self.fan_until - now)),
+                    "reason": self.fan_reason},
             "whatsapp": "ready" if whatsapp.configured() else "not configured",
             "last_error": self.last_error,
         }
@@ -243,6 +279,11 @@ def create_app(engine):
     def api_stop():
         engine.stop_valve()
         return jsonify(ok=True)
+
+    @app.post("/api/fan")
+    def api_fan():
+        ok, info = engine.fan_on("manual (operator)", by="operator")
+        return jsonify(ok=ok, info=info)
 
     @app.post("/api/sim/dry")
     def api_sim_dry():

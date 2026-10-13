@@ -90,19 +90,23 @@ relays:
   model: waveshare_relay8
   address: 10
   channels:
-    0: {name: test-tray-valve, max_on_s: 300}            # 1" motorized ball valve on the test tray inlet
-    1: {name: drip-irrigation, max_on_s: 1800}
-    2: {name: submersible-pump, max_on_s: 1800,
-        interlock: {param: tank_level_pct, min: 15}}     # never dry-run the pump
-    # 3-7: Bays 1-5 once someone confirms what each bay switch actually runs
+    # Expo wiring: CH1 on the board = channel 0 = mini pump, CH2 = channel 1 = mini fan.
+    0: {name: demo-pump, max_on_s: 60}                   # no tank sensor at the expo: keep the bucket full
+    1: {name: demo-fan, max_on_s: 120}
+    # Polyhouse later: test-tray valve, drip, submersible pump (with interlock), Bays 1-5.
+    # 2: {name: submersible-pump, max_on_s: 1800, interlock: {param: tank_level_pct, min: 15}}
 
 # ---- Expo demo (used by expo/app.py) ----
 # Run the edge service with --interval 2 at the expo so readings feel live.
 expo:
   zone_name: Anthurium demo tray
-  valve_channel: 0      # relay channel the demo valve is wired to
-  water_s: 20           # how long one approved watering runs
+  valve_channel: 0      # relay channel the water device is wired to (the mini pump)
+  water_s: 10           # how long one approved watering runs (tune after the flow test)
   dry_below: 25         # pot moisture % that triggers a WhatsApp ask
   cooldown_s: 120       # minimum gap between automatic asks
   ask_expire_s: 300     # unanswered asks expire after this
   settle_s: 30          # wait after watering before measuring the result
+  fan_channel: 1        # relay channel the mini fan is wired to
+  fan_s: 20             # how long the fan runs per trigger
+  fan_rise: 8           # humidity points above its recent normal that trigger the fan
+  fan_cooldown_s: 40    # gap after the fan stops before it can trigger again
