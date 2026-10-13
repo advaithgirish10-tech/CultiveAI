@@ -6,21 +6,15 @@ site:
   site: kerala-test-01
 
 serial:
-  # Main adapter (soil probe 4). by-path names are tied to the physical USB socket,
-  # so they survive reboots; ttyUSBn numbers can swap. Don't move adapters between sockets.
-  port: /dev/serial/by-path/platform-xhci-hcd.1-usb-0:1:1.0-port0
+  # "auto": every USB-RS485 adapter is checked at startup and each device is found on whichever
+  # adapter it sits on, so any adapter can go in any USB socket. Missing devices are searched again
+  # every 30 s (handles replugging). A fixed path (e.g. /dev/ttyUSB0) plus optional extra_ports still works.
+  # Expo wiring: probe 4, lux 1, MD02 2, relay 10, each on its own adapter (lux and MD02 chatter ASCII).
+  port: auto
   baudrate: 9600            # every device gets moved to 9600 8N1 during setup
   parity: N
   stopbits: 1
-  timeout: 1.0
-  # Lux and MD02 both stream ASCII text on RS485, so each gets its own adapter (2-pin A/B, CH340).
-  extra_ports:
-    - port: /dev/serial/by-path/platform-xhci-hcd.1-usb-0:2:1.0-port0   # lux, address 1
-      units: [1]
-    - port: /dev/serial/by-path/platform-xhci-hcd.0-usb-0:1:1.0-port0   # MD02 air, address 2
-      units: [2]
-    - port: /dev/serial/by-path/platform-xhci-hcd.0-usb-0:2:1.0-port0   # relay, address 10
-      units: [10]
+  timeout: 0.5
 
 poll_interval_s: 60
 offline_after_failures: 3   # consecutive failed reads before a device is marked offline

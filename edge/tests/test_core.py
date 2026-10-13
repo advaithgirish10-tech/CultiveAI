@@ -83,3 +83,36 @@ def test_multibus_routes_by_address_and_dead_port_fails_cleanly():
     except BusError:
         pass
     mb.close()
+
+
+def test_autobus_finds_devices_on_any_adapter():
+    import logging as lg
+    from cultive_edge.bus import AutoBus, BusError
+
+    class Port:
+        def __init__(self, units):
+            self.units = set(units)
+
+        def read(self, unit, reg, count=1, fc=3):
+            if unit not in self.units:
+                raise BusError("no answer")
+            return [unit]
+
+        def read_coils(self, unit, start, count):
+            if unit not in self.units:
+                raise BusError("no answer")
+            return [False] * count
+
+        def close(self):
+            pass
+
+    wiring = {"A": Port([2]), "B": Port([4]), "C": Port([1]), "D": Port([10])}   # shuffled sockets
+    targets = [(4, 3, 0), (1, 3, 0), (2, 4, 1), (10, "coil", 0)]
+    bus = AutoBus(list(wiring), lambda p: wiring[p], targets, lg.getLogger())
+    assert bus.read(4, 0) == [4] and bus.read(1, 0) == [1] and bus.read(2, 1, 1, 4) == [2]
+    assert bus.read_coils(10, 0, 1) == [False]
+    # replug: probe moves from socket B to a new socket E
+    wiring["B"].units.clear(); wiring["E"] = Port([4])
+    bus.rediscover({4}, ports=["E"])
+    assert bus.read(4, 0) == [4]
+    bus.close()

@@ -3,6 +3,7 @@
 Run:  python -m cultive_edge.main --config config.yaml [--simulate]
 """
 import argparse
+import glob
 import json
 import logging
 import os
@@ -12,7 +13,7 @@ import urllib.request
 
 import yaml
 
-from .bus import BusError, DeadBus, ModbusBus, MultiBus, SimBus
+from .bus import AutoBus, BusError, DeadBus, ModbusBus, MultiBus, SimBus
 from .devices import read_device
 from .relay import RelayController
 from .store import Store
@@ -34,6 +35,9 @@ def make_bus(cfg):
     def open_port(port):
         return ModbusBus(port, s["baudrate"], s.get("parity", "N"), s.get("stopbits", 1), s.get("timeout", 1.0))
 
+    if s.get("port") == "auto":
+        return make_autobus(cfg, open_port)
+
     main = open_port(s["port"])
     extra = s.get("extra_ports") or []
     if not extra:
@@ -48,6 +52,23 @@ def make_bus(cfg):
         for unit in x.get("units", []):
             routes[int(unit)] = b
     return MultiBus(main, routes)
+
+
+def list_adapters():
+    return sorted(glob.glob("/dev/serial/by-path/*-usb-0:*")) or sorted(glob.glob("/dev/ttyUSB*"))
+
+
+def make_autobus(cfg, open_port):
+    targets = []
+    for dev in cfg["devices"]:
+        if dev.get("enabled", True) and dev.get("registers"):
+            r = dev["registers"][0]
+            targets.append((int(dev["address"]), r.get("fc", 3), r["reg"]))
+    if cfg.get("relays"):
+        targets.append((int(cfg["relays"]["address"]), "coil", 0))
+    ports = list_adapters()
+    log.info("auto-detect: %d adapter(s): %s", len(ports), ", ".join(ports) or "none")
+    return AutoBus(ports, open_port, targets, log)
 
 
 def upload(store, cfg):
@@ -118,7 +139,7 @@ def main():
     signal.signal(signal.SIGTERM, lambda *_: running.update(on=False))
     signal.signal(signal.SIGINT, lambda *_: running.update(on=False))
 
-    health, cycles, next_poll = {}, 0, 0.0
+    health, cycles, next_poll, next_scan = {}, 0, 0.0, time.time() + 30
     try:
         while running["on"]:
             if relays:
@@ -132,6 +153,14 @@ def main():
                 cycles += 1
                 if args.cycles and cycles >= args.cycles:
                     break
+            if isinstance(bus, AutoBus) and time.time() >= next_scan:
+                # devices offline or never found: look again on every adapter (handles replugging)
+                limit = cfg.get("offline_after_failures", 3)
+                lost = {int(d["address"]) for d in cfg["devices"] if health.get(d["id"], 0) >= limit}
+                lost |= {t[0] for t in bus.targets if t[0] not in bus.routes}
+                if lost:
+                    bus.rediscover(lost, ports=list_adapters())
+                next_scan = time.time() + 30
             time.sleep(1)
     finally:
         if relays:

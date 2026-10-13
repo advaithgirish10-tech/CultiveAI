@@ -111,6 +111,66 @@ class MultiBus:
             b.close()
 
 
+class AutoBus(MultiBus):
+    """Finds which adapter each device sits on, so any adapter can go in any USB socket.
+
+    targets: list of (unit, kind, reg) where kind is 3/4 (register read) or "coil" (relay).
+    Devices not found yet go to the first port and simply fail until rediscover() finds them."""
+
+    def __init__(self, ports, open_port, targets, log):
+        self.open_port, self.targets, self.log = open_port, targets, log
+        self.buses = {}
+        self.ports = list(ports)
+        for p in self.ports:
+            self._open(p)
+        first = next(iter(self.buses.values()), None) or DeadBus("none", "no USB-RS485 adapters found")
+        super().__init__(first, {})
+        self.rediscover()
+
+    def _open(self, p):
+        if p in self.buses:
+            return
+        try:
+            self.buses[p] = self.open_port(p)
+        except BusError as e:
+            self.log.warning("adapter %s could not be opened: %s", p, e)
+
+    def _probe(self, bus, unit, kind, reg):
+        try:
+            if kind == "coil":
+                bus.read_coils(unit, reg, 1)
+            else:
+                bus.read(unit, reg, 1, kind)
+            return True
+        except BusError:
+            return False
+
+    def rediscover(self, units=None, ports=None):
+        """Probe every adapter for the given units (default: all not yet found)."""
+        for p in ports or []:
+            if p not in self.ports:
+                self.ports.append(p)
+            self._open(p)
+        if self.main is not None and isinstance(self.main, DeadBus) and self.buses:
+            self.main = next(iter(self.buses.values()))
+        want = [t for t in self.targets if (units is None and t[0] not in self.routes) or (units and t[0] in units)]
+        for unit, kind, reg in want:
+            for p, bus in self.buses.items():
+                if self._probe(bus, unit, kind, reg):
+                    if self.routes.get(unit) is not bus:
+                        self.log.info("found address %s on %s", unit, p)
+                    self.routes[unit] = bus
+                    break
+            else:
+                self.routes.pop(unit, None)
+                self.log.warning("address %s not found on any adapter", unit)
+        return dict(self.routes)
+
+    def close(self):
+        for b in self.buses.values():
+            b.close()
+
+
 class SimBus:
     """Fake bus with plausible polyhouse readings (day/night cycle, drying soil)."""
 
