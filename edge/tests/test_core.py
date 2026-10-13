@@ -116,3 +116,35 @@ def test_autobus_finds_devices_on_any_adapter():
     bus.rediscover({4}, ports=["E"])
     assert bus.read(4, 0) == [4]
     bus.close()
+
+
+def test_relay_switched_off_when_its_adapter_reappears():
+    import logging as lg
+    from cultive_edge.bus import AutoBus, BusError
+    from cultive_edge.main import rescan
+
+    class Relay:
+        def __init__(self):
+            self.present, self.coils = False, {0: True}       # board left the pump ON
+        def read_coils(self, unit, start, count):
+            if not self.present or unit != 10:
+                raise BusError("no answer")
+            return [self.coils.get(start, False)]
+        def write_coil(self, unit, ch, on):
+            if not self.present:
+                raise BusError("no answer")
+            self.coils[ch] = on
+        def read(self, *a, **k):
+            raise BusError("no answer")
+        def close(self):
+            pass
+
+    board = Relay()
+    bus = AutoBus(["R"], lambda p: board, [(10, "coil", 0)], lg.getLogger())
+    st = Store(os.path.join(tempfile.mkdtemp(), "t.db"))
+    relays = RelayController(bus, st, RELAYS, lg.getLogger())
+    relays.all_off("service start")                            # fails: board not found yet
+    assert board.coils[0] is True
+    board.present = True                                       # adapter plugged back in
+    rescan(bus, {"devices": [], "relays": RELAYS}, {}, relays, ports=["R"])
+    assert board.coils[0] is False                             # pump switched off

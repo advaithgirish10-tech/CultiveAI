@@ -71,6 +71,20 @@ def make_autobus(cfg, open_port):
     return AutoBus(ports, open_port, targets, log)
 
 
+def rescan(bus, cfg, health, relays, ports=None):
+    """Look again for devices that are offline or were never found (handles replugging).
+    If the relay board reappears, switch every channel off: it keeps its last state."""
+    limit = cfg.get("offline_after_failures", 3)
+    lost = {int(d["address"]) for d in cfg["devices"] if health.get(d["id"], 0) >= limit}
+    lost |= {t[0] for t in bus.targets if t[0] not in bus.routes}
+    if not lost:
+        return
+    before = set(bus.routes)
+    bus.rediscover(lost, ports=list_adapters() if ports is None else ports)
+    if relays and int(cfg["relays"]["address"]) in set(bus.routes) - before:
+        relays.all_off("relay adapter found")
+
+
 def upload(store, cfg):
     up = cfg.get("upload") or {}
     if not up.get("url"):
@@ -154,12 +168,7 @@ def main():
                 if args.cycles and cycles >= args.cycles:
                     break
             if isinstance(bus, AutoBus) and time.time() >= next_scan:
-                # devices offline or never found: look again on every adapter (handles replugging)
-                limit = cfg.get("offline_after_failures", 3)
-                lost = {int(d["address"]) for d in cfg["devices"] if health.get(d["id"], 0) >= limit}
-                lost |= {t[0] for t in bus.targets if t[0] not in bus.routes}
-                if lost:
-                    bus.rediscover(lost, ports=list_adapters())
+                rescan(bus, cfg, health, relays)
                 next_scan = time.time() + 30
             time.sleep(1)
     finally:
