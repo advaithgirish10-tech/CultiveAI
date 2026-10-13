@@ -6,18 +6,19 @@ site:
   site: kerala-test-01
 
 serial:
-  port: /dev/ttyUSB0        # USB-RS485 adapter; check with `ls /dev/ttyUSB*`
+  # Main adapter (soil probe 4 + relay 10). by-path names are tied to the physical USB socket,
+  # so they survive reboots; ttyUSBn numbers can swap. Don't move adapters between sockets.
+  port: /dev/serial/by-path/platform-xhci-hcd.1-usb-0:1:1.0-port0
   baudrate: 9600            # every device gets moved to 9600 8N1 during setup
   parity: N
   stopbits: 1
   timeout: 1.0
-  # Optional: devices that need their OWN USB-RS485 adapter (e.g. the lux sensor, which also
-  # streams ASCII text nonstop and would garble a shared bus). Find stable port names with:
-  #   ls -l /dev/serial/by-path/
-  # Uncomment once adapter #2 is plugged in:
-  # extra_ports:
-  #   - port: /dev/serial/by-path/REPLACE-ME   # adapter #2
-  #     units: [1]                             # lux sensor
+  # Lux and MD02 both stream ASCII text on RS485, so each gets its own adapter (2-pin A/B, CH340).
+  extra_ports:
+    - port: /dev/serial/by-path/platform-xhci-hcd.1-usb-0:2:1.0-port0   # lux, address 1
+      units: [1]
+    - port: /dev/serial/by-path/platform-xhci-hcd.0-usb-0:1:1.0-port0   # MD02 air, address 2
+      units: [2]
 
 poll_interval_s: 60
 offline_after_failures: 3   # consecutive failed reads before a device is marked offline
