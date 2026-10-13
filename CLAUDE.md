@@ -43,10 +43,12 @@ Audience: government, nurseries, polyhouses. Fallback if WhatsApp fails: "Approv
 Plan: Sat 10 Pi + addressing + chain + valve · Mon 12 WhatsApp (Meta test number + cloudflared tunnel) · Tue 13 poster/QR · Wed 14 rehearsal + fallback video · Thu 15 pack.
 Known risks: gravity flow through the ¼" valve may only trickle (backup: 12V mini pump on the same relay channel); the WhatsApp temp token lasts ~24 h; the cloudflared URL changes on every restart.
 
-## Status (10 Oct 2026)
-- Pi 5 flashed (hostname `cultive`, user `pi`), repo cloned, simulator verified on the Pi.
-- Lux sensor answers at address 1 @ 9600; verified with a torch. It chatters ASCII nonstop: second USB-RS485 adapter ordered; Wittelb asked how to disable it.
-- Next: soil probe → 4, MD02 → 2, relay → 10, then chain the bus, real readings on the dashboard, wire the valve.
+## Status (13 Oct 2026)
+- Pi 5 re-flashed 11 Oct (Raspberry Pi OS Lite 64-bit, Debian 13 Trixie, Python 3.13, pymodbus 3.15); hostname `cultive`, user `pi`; repo cloned; simulator + dashboard verified.
+- All 4 devices addressed and verified alone on the bus (addresses live inside the devices, not on the Pi): lux 1, MD02 2, soil probe 4, relay 10. All at 9600.
+- Lux and MD02 also stream ASCII text on RS485 (lux ~10x/s, MD02 every ~2 s); Modbus reads still succeed alone. Chain test pending; if reads fail, move the lux to a 2nd adapter via `serial.extra_ports` (2 CH340 adapters ordered).
+- Valve and mini pump not yet tested on 12V. Relay not yet click-tested.
+- Next: chain all 4 + count failed reads, real readings on the dashboard, valve through relay CH1, flow test, WhatsApp setup.
 
 ## Later (after the expo)
 Cloud: Supabase Postgres, Mumbai region (no TimescaleDB, use partitions/rollups). Supabase Auth + RLS, Edge Functions, the Pi pulls commands (no open ports), Vercel dashboard. Multi-tenant org → site → zone → device.
