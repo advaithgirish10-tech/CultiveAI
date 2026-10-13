@@ -6,7 +6,7 @@ site:
   site: kerala-test-01
 
 serial:
-  # Main adapter (soil probe 4 + relay 10). by-path names are tied to the physical USB socket,
+  # Main adapter (soil probe 4). by-path names are tied to the physical USB socket,
   # so they survive reboots; ttyUSBn numbers can swap. Don't move adapters between sockets.
   port: /dev/serial/by-path/platform-xhci-hcd.1-usb-0:1:1.0-port0
   baudrate: 9600            # every device gets moved to 9600 8N1 during setup
@@ -19,6 +19,8 @@ serial:
       units: [1]
     - port: /dev/serial/by-path/platform-xhci-hcd.0-usb-0:1:1.0-port0   # MD02 air, address 2
       units: [2]
+    - port: /dev/serial/by-path/platform-xhci-hcd.0-usb-0:2:1.0-port0   # relay, address 10
+      units: [10]
 
 poll_interval_s: 60
 offline_after_failures: 3   # consecutive failed reads before a device is marked offline
