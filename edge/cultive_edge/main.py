@@ -77,6 +77,14 @@ def rescan(bus, cfg, health, relays, ports=None):
     limit = cfg.get("offline_after_failures", 3)
     lost = {int(d["address"]) for d in cfg["devices"] if health.get(d["id"], 0) >= limit}
     lost |= {t[0] for t in bus.targets if t[0] not in bus.routes}
+    if relays:                                   # sensors are health-checked by polling; check the relay directly
+        unit = int(cfg["relays"]["address"])
+        if unit in bus.routes:
+            try:
+                bus.read_coils(unit, 0, 1)
+            except BusError:
+                lost.add(unit)
+                bus.routes.pop(unit, None)       # treat it as gone, so finding it again triggers all-off
     if not lost:
         return
     before = set(bus.routes)

@@ -148,3 +148,34 @@ def test_relay_switched_off_when_its_adapter_reappears():
     board.present = True                                       # adapter plugged back in
     rescan(bus, {"devices": [], "relays": RELAYS}, {}, relays, ports=["R"])
     assert board.coils[0] is False                             # pump switched off
+
+
+def test_relay_found_again_after_moving_sockets():
+    import logging as lg
+    from cultive_edge.bus import AutoBus, BusError
+    from cultive_edge.main import rescan
+
+    class Port:
+        def __init__(self, has_relay):
+            self.has_relay, self.coils = has_relay, {}
+        def read_coils(self, unit, start, count):
+            if not self.has_relay:
+                raise BusError("no answer")
+            return [self.coils.get(start, False)]
+        def write_coil(self, unit, ch, on):
+            if not self.has_relay:
+                raise BusError("no answer")
+            self.coils[ch] = on
+        def read(self, *a, **k):
+            raise BusError("no answer")
+        def close(self):
+            pass
+
+    ports = {"A": Port(True)}
+    bus = AutoBus(["A"], lambda p: ports[p], [(10, "coil", 0)], lg.getLogger())
+    st = Store(os.path.join(tempfile.mkdtemp(), "t.db"))
+    relays = RelayController(bus, st, RELAYS, lg.getLogger())
+    ports["A"].has_relay = False                       # unplugged from socket A ...
+    ports["B"] = Port(True); ports["B"].coils[0] = True  # ... into socket B, pump channel on
+    rescan(bus, {"devices": [], "relays": RELAYS}, {}, relays, ports=["B"])
+    assert bus.routes[10] is ports["B"] and ports["B"].coils[0] is False
