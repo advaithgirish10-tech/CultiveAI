@@ -16,7 +16,7 @@ serial:
   stopbits: 1
   timeout: 0.5
 
-poll_interval_s: 60
+poll_interval_s: 2   # expo: 2 s so the TV feels live. Set back to 60 for the polyhouse.
 offline_after_failures: 3   # consecutive failed reads before a device is marked offline
 simulate: false             # true = fake sensors, no hardware needed
 db_path: data/cultive.db

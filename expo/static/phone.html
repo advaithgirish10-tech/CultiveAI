@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#1f3b2a">
+<title>Cultive · Grower's phone</title>
+<style>
+  :root{--head:#1f3b2a;--bg:#eef2ea;--in:#ffffff;--out:#d6efc8;--ink:#1d2a21;--muted:#6b7a6e;--leaf:#2f7d3e;--amber:#b7791f}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter","Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+  .app{height:100%;display:flex;flex-direction:column;max-width:560px;margin:0 auto}
+  header{background:var(--head);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px}
+  .avatar{width:40px;height:40px;border-radius:50%;background:#7fd18b;color:var(--head);display:grid;place-items:center;font-weight:800}
+  .who b{display:block;font-size:17px}
+  .who span{font-size:13px;opacity:.75}
+  .demo{font-size:12px;text-align:center;color:var(--muted);padding:8px 16px}
+  .chat{flex:1;overflow-y:auto;padding:12px 12px 24px;display:flex;flex-direction:column;gap:10px}
+  .b{max-width:86%;padding:12px 14px;border-radius:14px;font-size:16px;line-height:1.4;white-space:pre-line;box-shadow:0 1px 1px rgba(0,0,0,.06)}
+  .b.in{background:var(--in);align-self:flex-start;border-top-left-radius:4px}
+  .b.out{background:var(--out);align-self:flex-end;border-top-right-radius:4px}
+  .b small{display:block;margin-top:6px;font-size:11px;color:var(--muted);text-align:right}
+  .acts{display:flex;gap:10px;align-self:flex-start;width:86%}
+  .acts button{flex:1;font:inherit;font-size:17px;font-weight:700;border-radius:12px;padding:14px;border:0;cursor:pointer}
+  .ok{background:var(--leaf);color:#fff}
+  .no{background:#fff;color:var(--ink);border:1px solid #cdd6c8 !important}
+  .idle{margin:auto;text-align:center;color:var(--muted);font-size:15px;line-height:1.5;padding:24px}
+  .idle b{display:block;color:var(--ink);font-size:18px;margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="avatar">C</div>
+    <div class="who"><b>Cultive AI</b><span id="sub">Anthurium demo tray</span></div>
+  </header>
+  <div class="demo">Demo view of the grower's phone. Real alerts arrive on WhatsApp.</div>
+  <div class="chat" id="chat"></div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const hm = ts => new Date(ts*1000).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
+let busy = false;
+
+async function act(verb){
+  if (busy) return; busy = true;
+  try { await fetch("/api/" + verb, {method:"POST", headers:{"Content-Type":"application/json"}, body:"{}"}); }
+  finally { busy = false; refresh(); }
+}
+
+function bubbles(s){
+  const a = s.ask, now = s.now, out = [];
+  if (!a) return null;
+  const end = (a.resolved_ts || 0) + s.water_s + s.settle_s + 90;
+  if (a.status !== "pending" && a.status !== "watering" && now > end) return null;
+  out.push(`<div class="b in">${esc(a.message)}<small>${hm(a.ts)}</small></div>`);
+  if (a.status === "pending") {
+    out.push(`<div class="acts"><button class="ok" onclick="act('approve')">Approve</button>` +
+             `<button class="no" onclick="act('ignore')">Ignore</button></div>`);
+    return out.join("");
+  }
+  if (a.status === "ignored" || a.status === "expired") {
+    out.push(`<div class="b out">${a.status === "ignored" ? "Ignore" : "(no reply)"}<small>${hm(a.resolved_ts || a.ts)}</small></div>`);
+    out.push(`<div class="b in">OK, not watering. I'll keep watching the pot.<small>${hm(a.resolved_ts || a.ts)}</small></div>`);
+    return out.join("");
+  }
+  out.push(`<div class="b out">Approve ✓<small>${hm(a.resolved_ts)}</small></div>`);
+  const left = Math.round(a.resolved_ts + s.water_s - now);
+  if (a.status === "watering" && left > 0)
+    out.push(`<div class="b in">Watering now. ${left}s left. It stops by itself.<small>${hm(now)}</small></div>`);
+  else if (a.status === "watering")
+    out.push(`<div class="b in">Watering done. Measuring the result…<small>${hm(now)}</small></div>`);
+  else if (a.status === "done") {
+    const b = a.before, af = a.after;
+    const txt = (b != null && af != null) ? `Done. Pot moisture ${b.toFixed(0)}% → ${af.toFixed(0)}%. Logged.` : "Done. Watering logged.";
+    out.push(`<div class="b in">${txt}<small>${hm(a.resolved_ts + s.water_s + s.settle_s)}</small></div>`);
+  }
+  return out.join("");
+}
+function esc(t){ return String(t||"").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+async function refresh(){
+  try {
+    const s = await (await fetch("/api/state", {cache:"no-store"})).json();
+    $("sub").textContent = s.zone;
+    const html = bubbles(s);
+    $("chat").innerHTML = html || `<div class="idle"><b>All good</b>The pot has enough water.<br>You'll get a message here when it needs watering.</div>`;
+  } catch(e) {}
+}
+setInterval(refresh, 1500); refresh();
+</script>
+</body>
+</html>

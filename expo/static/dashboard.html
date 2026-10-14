@@ -58,6 +58,27 @@
   .step.on.amber{border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber)}
   .step.on.blue{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
   .feed{position:fixed;right:3.2vw;bottom:15vh;width:0;height:0}
+
+  /* Grower's phone: slides in only while a watering ask is open or just finished */
+  .phone{position:fixed;right:3vw;top:50%;width:25vw;min-width:330px;height:80vh;transform:translate(130%,-50%);
+    transition:transform .6s cubic-bezier(.2,.9,.25,1);background:#0b0f0c;border-radius:4.5vh;padding:1.4vh;
+    box-shadow:0 3vh 8vh rgba(0,0,0,.65),0 0 0 2px #2b3a30;z-index:10}
+  .phone.show{transform:translate(0,-50%)}
+  .phone .scr{height:100%;border-radius:3.4vh;overflow:hidden;background:#eef2ea;display:flex;flex-direction:column}
+  .phone .top{background:#1f3b2a;color:#fff;padding:2.2vh 1.2vw 1.6vh;display:flex;align-items:center;gap:.8vw}
+  .phone .av{width:4.6vh;height:4.6vh;border-radius:50%;background:#7fd18b;color:#1f3b2a;display:grid;place-items:center;font-weight:800;font-size:2.2vh}
+  .phone .top b{display:block;font-size:2.2vh} .phone .top span{font-size:1.5vh;opacity:.75}
+  .phone .tag{font-size:1.4vh;color:#6b7a6e;text-align:center;padding:.8vh}
+  .phone .msgs{flex:1;padding:1vh .9vw;display:flex;flex-direction:column;gap:1.1vh;overflow:hidden}
+  .phone .b{max-width:88%;padding:1.2vh .9vw;border-radius:1.4vh;font-size:2vh;line-height:1.35;color:#1d2a21;white-space:pre-line;
+    box-shadow:0 1px 1px rgba(0,0,0,.08);animation:pop .35s ease-out}
+  .phone .b.in{background:#fff;align-self:flex-start;border-top-left-radius:.4vh}
+  .phone .b.out{background:#d6efc8;align-self:flex-end;border-top-right-radius:.4vh}
+  .phone .b small{display:block;margin-top:.5vh;font-size:1.3vh;color:#6b7a6e;text-align:right}
+  .phone .acts{display:flex;gap:.6vw;width:88%}
+  .phone .acts button{flex:1;font:inherit;font-size:2.1vh;font-weight:700;border-radius:1.2vh;padding:1.4vh;border:0;cursor:pointer}
+  .phone .ok{background:#2f7d3e;color:#fff} .phone .no{background:#fff;color:#1d2a21;box-shadow:inset 0 0 0 1px #cdd6c8}
+  @keyframes pop{from{opacity:0;transform:translateY(1vh)}}
 </style>
 </head>
 <body>
@@ -92,6 +113,11 @@
     <div class="step" id="s5"><b>5 · Measure</b><span>Result logged as data</span></div>
   </div>
 </div>
+<div class="phone" id="phone"><div class="scr">
+  <div class="top"><div class="av">C</div><div><b>Cultive AI</b><span>Grower's phone · demo view</span></div></div>
+  <div class="tag">Real alerts arrive on WhatsApp</div>
+  <div class="msgs" id="msgs"></div>
+</div></div>
 <script>
 const $ = id => document.getElementById(id);
 const fmt = (v, d=0) => v === null || v === undefined ? "--" : Number(v).toLocaleString("en-IN",{maximumFractionDigits:d,minimumFractionDigits:d});
@@ -112,7 +138,49 @@ function spark(hist, dry){
     `<polyline points="0,160 ${pts} 600,160" fill="#7fd18b" opacity=".12" stroke="none"/>`+
     `<polyline points="${pts}" fill="none" stroke="#7fd18b" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`;
 }
-const STEPS = {ok:[1], offline:[], dry:[1,2], asking:[1,2,3], watering:[4], measuring:[4,5], done:[5]};
+const hm = ts => new Date(ts*1000).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
+const esc = t => String(t||"").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+async function act(verb){
+  try { await fetch("/api/" + verb, {method:"POST", headers:{"Content-Type":"application/json"}, body:"{}"}); } catch(e) {}
+  tick();
+}
+// Same chat as /phone. Returns null when there is nothing to show (phone stays hidden).
+function chat(s){
+  const a = s.ask, now = s.now, out = [];
+  if (!a) return null;
+  if (a.status === "ignored" || a.status === "expired") {
+    if (now - (a.resolved_ts || a.ts) > 15) return null;
+  } else if (a.status === "done") {
+    if (now - a.resolved_ts > s.water_s + s.settle_s + 30) return null;
+  } else if (a.status !== "pending" && a.status !== "watering") return null;
+  out.push(`<div class="b in">${esc(a.message)}<small>${hm(a.ts)}</small></div>`);
+  if (a.status === "pending") {
+    out.push(`<div class="acts"><button class="ok" onclick="act('approve')">Approve</button><button class="no" onclick="act('ignore')">Ignore</button></div>`);
+    return out.join("");
+  }
+  if (a.status === "ignored" || a.status === "expired") {
+    out.push(`<div class="b out">${a.status === "ignored" ? "Ignore" : "(no reply)"}<small>${hm(a.resolved_ts || a.ts)}</small></div>`);
+    out.push(`<div class="b in">OK, not watering. I'll keep watching the pot.</div>`);
+    return out.join("");
+  }
+  out.push(`<div class="b out">Approve ✓<small>${hm(a.resolved_ts)}${a.by ? " · " + esc(a.by) : ""}</small></div>`);
+  const left = Math.round(a.resolved_ts + s.water_s - now);
+  if (a.status === "watering" && left > 0) out.push(`<div class="b in">Watering now. ${left}s left. It stops by itself.</div>`);
+  else if (a.status === "watering") out.push(`<div class="b in">Pump off. Measuring the result…</div>`);
+  else {
+    out.push(`<div class="b in">Pump off. Measuring the result…</div>`);
+    out.push(`<div class="b in">${(a.before != null && a.after != null) ? `Done. Pot moisture ${a.before.toFixed(0)}% → ${a.after.toFixed(0)}%. Logged.` : "Done. Watering logged."}</div>`);
+  }
+  return out.join("");
+}
+let lastChat = "";
+function phone(s){
+  const html = chat(s);
+  $("phone").classList.toggle("show", !!html);
+  if (html && html !== lastChat) $("msgs").innerHTML = html;  // only redraw on change so bubbles don't re-animate
+  lastChat = html || lastChat;
+}
+const STEPS ={ok:[1], offline:[], dry:[1,2], asking:[1,2,3], watering:[4], measuring:[4,5], done:[5]};
 async function tick(){
   try{
     const s = await (await fetch("/api/state",{cache:"no-store"})).json();
@@ -131,6 +199,7 @@ async function tick(){
     $("t_fan").classList.toggle("flash", !!f.on);
     $("fanNote").textContent = f.on ? (f.reason || "Running") : "Breathe on the air sensor";
     spark(s.moisture_history, s.dry_below);
+    phone(s);
     const on = STEPS[s.phase] || [];
     for (let i=1;i<=5;i++){
       const el = $("s"+i); el.className = "step" + (on.includes(i) ? " on" : "");

@@ -48,6 +48,7 @@ Known risks: gravity flow through the ¼" valve may only trickle (backup: 12V mi
 - All 4 devices addressed and verified alone on the bus (addresses live inside the devices, not on the Pi): lux 1, MD02 2, soil probe 4, relay 10. All at 9600.
 - Lux and MD02 stream ASCII text on RS485, so every device has its own CH340 adapter (4 adapters: probe 4, lux 1, MD02 2, relay 10). `serial.port: auto` finds each device on whichever adapter/socket it is in at startup, and re-searches missing devices every 30 s. Verified 13 Oct: all four answer.
 - Expo uses the mini PUMP on relay CH1 (channel 0, 10 s per approval) and a mini FAN on CH2 (channel 1). Fan rule: humidity >= 8 points above its 3-min normal (someone breathes on the MD02) -> fan 20 s, 40 s cooldown. No tank sensor at the expo: bucket must stay full. Relay safety tests use their own channel map, not config.yaml.
+- Demo phone (14 Oct): the TV shows a phone-style chat panel only while a watering ask is open (Approve/Ignore work there), then the result, then it slides away. `/phone` is the same chat for a real phone on the same WiFi. Labelled "demo view", no WhatsApp branding. `poll_interval_s: 2` for the expo (set back to 60 after).
 - Next: pump + fan click test on the relay, live dashboard with real sensors, flow test, WhatsApp, run both services at boot (systemd) for the expo.
 
 ## Later (after the expo)

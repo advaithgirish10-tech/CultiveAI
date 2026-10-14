@@ -237,6 +237,9 @@ class Engine:
             "actions": [dict(ts=a[0], name=a[1], state=a[2], dur=a[3], source=a[4], reason=a[5]) for a in acts],
             "asks": [dict(id=a[0], ts=a[1], status=a[2], before=a[3], after=a[4], by=a[5], wa=a[6]) for a in asks],
             "offline_devices": [d[0] for d in dev if d[1] == "offline"],
+            "ask": (dict(id=ask[0], ts=ask[1], message=ask[3], before=ask[4], status=ask[5],
+                         resolved_ts=ask[6], by=ask[7], after=ask[8]) if ask else None),
+            "water_s": self.o["water_s"], "settle_s": self.o["settle_s"],
             "fan": {"configured": self.o.get("fan_channel") is not None,
                     "on": now < self.fan_until, "left": max(0, round(self.fan_until - now)),
                     "reason": self.fan_reason},
@@ -251,6 +254,10 @@ def create_app(engine):
     @app.get("/")
     def tv():
         return send_from_directory(app.static_folder, "dashboard.html")
+
+    @app.get("/phone")
+    def phone():
+        return send_from_directory(app.static_folder, "phone.html")
 
     @app.get("/operator")
     def operator():
