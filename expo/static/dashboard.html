@@ -6,138 +6,202 @@
 <title>Cultive AI · Live</title>
 <style>
   :root{
-    --bg:#0e1712; --panel:#15211a; --line:#24352b; --ink:#eef3ea; --muted:#8fa395;
-    --leaf:#7fd18b; --leaf-d:#2f6b3a; --amber:#f3b23c; --amber-d:#5a3f0e; --blue:#6cb6ff; --red:#ff7a6b;
+    --bg:#f3f5f2; --card:#ffffff; --line:#e6ebe5; --ink:#141a16; --ink2:#3d4a42; --muted:#7a877f;
+    --green:#1f6b3a; --green2:#2f9e55; --leaf:#34a853; --peach:#fdf1e4; --peach-b:#f6dcbf; --peach-i:#f9d9b0;
+    --red:#c43a31; --red-bg:#fde4e1; --blue:#2f6fd6; --blue-bg:#e6effd; --ok-bg:#e8f5ec;
+    --sh:0 1px 2px rgba(20,40,25,.04),0 6px 24px rgba(20,40,25,.06);
   }
   *{box-sizing:border-box;margin:0}
-  html,body{height:100%;background:var(--bg);color:var(--ink);
-    font-family:"Inter","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;overflow:hidden}
-  .wrap{height:100vh;display:grid;grid-template-rows:auto auto 1fr auto;gap:2.2vh;padding:3vh 3.2vw}
-  header{display:flex;align-items:baseline;justify-content:space-between}
-  .brand{font-size:3.4vh;font-weight:700;letter-spacing:-.02em}
-  .brand span{color:var(--leaf)}
-  .sub{color:var(--muted);font-size:2vh;margin-left:1.2vw;font-weight:500}
-  .clock{color:var(--muted);font-size:2.2vh;font-variant-numeric:tabular-nums}
-  .live{display:inline-block;width:1.1vh;height:1.1vh;border-radius:50%;background:var(--leaf);margin-right:.6vw;
-    animation:pulse 1.6s ease-in-out infinite}
-  @keyframes pulse{50%{opacity:.25}}
+  html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
+    font-family:"Inter","SF Pro Display","Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+  .wrap{height:100vh;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto 1fr auto;gap:2.2vh;padding:3vh 2.8vw;
+    transition:padding-right .6s cubic-bezier(.2,.9,.25,1)}
+  body.phone-open .wrap{padding-right:calc(max(21vw,320px) + 5vw)}
 
-  .banner{border-radius:1.6vh;padding:2.2vh 2.4vw;display:flex;align-items:center;gap:2vw;
-    background:var(--panel);border:1px solid var(--line);transition:background .4s,border-color .4s}
-  .banner .dot{width:2.4vh;height:2.4vh;border-radius:50%;background:var(--leaf);flex:none}
-  .banner .h{font-size:4.2vh;font-weight:700;letter-spacing:-.02em}
-  .banner.asking,.banner.dry{background:var(--amber-d);border-color:var(--amber)}
-  .banner.asking .dot,.banner.dry .dot{background:var(--amber);animation:pulse 1s infinite}
-  .banner.watering,.banner.measuring{background:#0f2e4a;border-color:var(--blue)}
-  .banner.watering .dot,.banner.measuring .dot{background:var(--blue);animation:pulse .7s infinite}
-  .banner.done{background:var(--leaf-d);border-color:var(--leaf)}
-  .banner.offline{border-color:var(--red)} .banner.offline .dot{background:var(--red)}
-
-  .main{display:grid;grid-template-columns:1.25fr 1fr;gap:2.2vw;min-height:0}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:1.6vh;padding:2.4vh 1.8vw;min-height:0}
-  .label{color:var(--muted);font-size:1.9vh;font-weight:600;text-transform:uppercase;letter-spacing:.08em}
-  .hero{display:flex;flex-direction:column}
-  .heroval{font-size:16vh;font-weight:800;letter-spacing:-.05em;line-height:1;margin-top:1vh;font-variant-numeric:tabular-nums}
-  .heroval small{font-size:5vh;color:var(--muted);font-weight:600;margin-left:.4vw}
-  .heroval.dry{color:var(--amber)}
-  .hint{color:var(--muted);font-size:2vh;margin-top:.6vh}
-  svg.spark{flex:1;width:100%;min-height:12vh;margin-top:2vh}
-  .tiles{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr 1fr;gap:1.6vh 1.2vw}
-  .tile .v{font-size:5.6vh;font-weight:750;letter-spacing:-.03em;margin-top:.6vh;font-variant-numeric:tabular-nums;
-    transition:color .3s}
-  .tile .v small{font-size:2.6vh;color:var(--muted);font-weight:600;margin-left:.3vw}
-  .tile .v.flash{color:var(--leaf)}
-  .devs{display:flex;flex-direction:column;gap:1.1vh;margin-top:1.2vh}
-  .dev{display:flex;align-items:center;gap:.8vw;font-size:2.6vh}
-  .dev i{width:1.6vh;height:1.6vh;border-radius:50%;background:#3a4a40;flex:none}
-  .dev b{font-weight:650;flex:1}
-  .dev span{color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
-  .dev.on i{background:var(--leaf);box-shadow:0 0 1vh var(--leaf)} .dev.on span{color:var(--leaf)}
-  .dev.pump.on i{background:var(--blue);box-shadow:0 0 1vh var(--blue)} .dev.pump.on span{color:var(--blue)}
-  .tile .note{color:var(--muted);font-size:1.7vh;margin-top:.4vh}
-
-  .loop{display:grid;grid-template-columns:repeat(5,1fr);gap:1vw}
-  .step{border:1px solid var(--line);border-radius:1.2vh;padding:1.4vh 1vw;background:var(--panel);
-    transition:all .35s;opacity:.55}
-  .step b{display:block;font-size:2.3vh}
-  .step span{color:var(--muted);font-size:1.7vh}
-  .step.on{opacity:1;border-color:var(--leaf);box-shadow:inset 0 0 0 1px var(--leaf)}
-  .step.on.amber{border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber)}
-  .step.on.blue{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
-  .feed{position:fixed;right:3.2vw;bottom:15vh;width:0;height:0}
-
-  /* Grower's phone: slides in only while a watering ask is open or just finished */
-  .phone{position:fixed;right:3vw;top:50%;width:25vw;min-width:330px;height:80vh;transform:translate(130%,-50%);
-    transition:transform .6s cubic-bezier(.2,.9,.25,1);background:#0b0f0c;border-radius:4.5vh;padding:1.4vh;
-    box-shadow:0 3vh 8vh rgba(0,0,0,.65),0 0 0 2px #2b3a30;z-index:10}
-  .phone.show{transform:translate(0,-50%)}
-  /* while the phone is open, the dashboard squeezes left instead of hiding under it */
-  .wrap{transition:padding-right .6s cubic-bezier(.2,.9,.25,1)}
-  body.phone-open .wrap{padding-right:calc(max(25vw,330px) + 5.5vw)}
-  .phone .min{margin-left:auto;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:1vh;
-    font:inherit;font-size:2.4vh;font-weight:700;width:4.4vh;height:4.4vh;cursor:pointer;line-height:1}
-  .pill{display:none;margin-right:1.2vw;background:var(--amber-d);color:var(--ink);border:1px solid var(--amber);
-    border-radius:99px;padding:.6vh 1.1vw;font:inherit;font-size:1.9vh;font-weight:600;cursor:pointer}
+  /* header */
+  header{display:flex;align-items:center;justify-content:space-between}
+  .brand{display:flex;align-items:center;gap:1.4vw}
+  .logo{display:flex;align-items:center;font-size:4.6vh;font-weight:800;letter-spacing:-.045em;color:var(--green);line-height:1}
+  .logo .ai{color:var(--green2)}
+  .logo svg{height:4vh;width:4vh;margin-right:.5vw}
+  .sep{width:1px;height:3.2vh;background:var(--line)}
+  .zone{font-size:2vh;color:var(--ink2);display:flex;align-items:center;gap:.6vw}
+  .zone b{color:var(--ink);font-weight:650}
+  .dot{display:inline-block;width:1.1vh;height:1.1vh;border-radius:50%;background:var(--leaf)}
+  .dot.pulse{animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{50%{opacity:.3}}
+  .clockbox{display:flex;align-items:center;gap:1.2vw}
+  .clock{text-align:right}
+  .clock .t{font-size:2.4vh;font-weight:650;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:.6vw;justify-content:flex-end}
+  .clock .d{font-size:1.6vh;color:var(--muted);margin-top:.3vh}
+  .pill{display:none;background:var(--peach);color:var(--ink);border:1px solid var(--peach-b);border-radius:99px;
+    padding:.8vh 1.2vw;font:inherit;font-size:1.8vh;font-weight:650;cursor:pointer}
   .pill.show{display:inline-block}
-  .phone .scr{height:100%;border-radius:3.4vh;overflow:hidden;background:#eef2ea;display:flex;flex-direction:column}
-  .phone .top{background:#1f3b2a;color:#fff;padding:2.2vh 1.2vw 1.6vh;display:flex;align-items:center;gap:.8vw}
-  .phone .av{width:4.6vh;height:4.6vh;border-radius:50%;background:#7fd18b;color:#1f3b2a;display:grid;place-items:center;font-weight:800;font-size:2.2vh}
-  .phone .top b{display:block;font-size:2.2vh} .phone .top span{font-size:1.5vh;opacity:.75}
-  .phone .tag{font-size:1.4vh;color:#6b7a6e;text-align:center;padding:.8vh}
-  .phone .msgs{flex:1;padding:1vh .9vw;display:flex;flex-direction:column;gap:1.1vh;overflow:hidden}
-  .phone .b{max-width:88%;padding:1.2vh .9vw;border-radius:1.4vh;font-size:2vh;line-height:1.35;color:#1d2a21;white-space:pre-line;
-    box-shadow:0 1px 1px rgba(0,0,0,.08);animation:pop .35s ease-out}
+
+  /* banner */
+  .banner{border-radius:2vh;padding:2.2vh 2vw;display:flex;align-items:center;gap:1.6vw;background:var(--ok-bg);
+    border:1px solid #cfe8d6;box-shadow:var(--sh);transition:background .4s,border-color .4s}
+  .banner .ic{width:7.4vh;height:7.4vh;border-radius:50%;display:grid;place-items:center;background:#cdebd6;flex:none}
+  .banner .ic svg{width:3.4vh;height:3.4vh;stroke:var(--ink);fill:none;stroke-width:2}
+  .banner .k{font-size:1.6vh;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+  .banner .h{font-size:3.8vh;font-weight:750;letter-spacing:-.025em;margin-top:.4vh}
+  .banner .chev{margin-left:auto;width:2.6vh;height:2.6vh;stroke:var(--muted);fill:none;stroke-width:2}
+  .banner.asking,.banner.dry{background:var(--peach);border-color:var(--peach-b)}
+  .banner.asking .ic,.banner.dry .ic{background:var(--peach-i);animation:pulse 1.4s infinite}
+  .banner.watering,.banner.measuring{background:var(--blue-bg);border-color:#c9dbfa}
+  .banner.watering .ic,.banner.measuring .ic{background:#cfe0fb}
+  .banner.offline{background:var(--red-bg);border-color:#f5c3bd} .banner.offline .ic{background:#f8cdc7}
+
+  /* main grid */
+  .main{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:1.6vw;min-height:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:2vh;box-shadow:var(--sh);padding:2.6vh 1.6vw;min-height:0;min-width:0;overflow:hidden}
+  .label{display:flex;align-items:center;gap:.6vw;color:var(--ink2);font-size:1.75vh;font-weight:650;text-transform:uppercase;letter-spacing:.07em}
+  .label svg{width:2.4vh;height:2.4vh;stroke:var(--ink2);fill:none;stroke-width:1.7;flex:none}
+  .hero{display:flex;flex-direction:column}
+  .hero .top{display:flex;justify-content:space-between;align-items:center}
+  .legend{display:flex;align-items:center;gap:.5vw;font-size:1.7vh;color:var(--ink2)}
+  .legend i{width:2.6vh;border-top:2px dashed var(--ink2)}
+  .heroval{font-size:13vh;font-weight:800;letter-spacing:-.05em;line-height:1;margin-top:1.2vh;font-variant-numeric:tabular-nums}
+  .heroval small{font-size:5vh;font-weight:650;margin-left:.6vw;letter-spacing:0}
+  .state{display:inline-block;margin-top:.6vh;border-radius:99px;padding:.5vh 1vw;font-size:1.9vh;font-weight:650;background:var(--ok-bg);color:var(--green)}
+  .state.dry{background:var(--red-bg);color:var(--red)} .state.wet{background:var(--blue-bg);color:var(--blue)}
+  .hrow{display:flex;justify-content:space-between;align-items:flex-end;gap:1vw;margin-top:1.2vh}
+  .hint{color:var(--muted);font-size:1.9vh;line-height:1.35;max-width:62%}
+  .range{border:1px solid var(--line);border-radius:99px;padding:.8vh 1.1vw;font-size:1.7vh;font-weight:600;color:var(--ink2);white-space:nowrap}
+  .chart{flex:1;min-height:14vh;margin-top:1.6vh;position:relative}
+  .chart svg{position:absolute;inset:0;width:100%;height:100%}
+
+  .tiles{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:1fr 1fr 1fr;gap:1.6vh 1.1vw;min-height:0}
+  .tile{display:flex;flex-direction:column}
+  .tile .v{font-size:5.6vh;font-weight:780;letter-spacing:-.035em;margin-top:1.2vh;font-variant-numeric:tabular-nums;transition:color .3s;line-height:1.05}
+  .tile .v small{font-size:2.5vh;font-weight:600;margin-left:.4vw;letter-spacing:0}
+  .tile .v.flash{color:var(--green2)}
+  .tile .note{color:var(--muted);font-size:1.7vh;margin-top:.8vh;line-height:1.3}
+  .devs{display:flex;flex-direction:column;gap:1vh;margin-top:1.4vh}
+  .dev{display:flex;align-items:center;gap:.8vw;font-size:2.1vh}
+  .dev i{width:1.5vh;height:1.5vh;border-radius:50%;background:#d3d9d4;flex:none}
+  .dev b{font-weight:650;flex:1}
+  .dev span{color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+  .dev.on i{background:var(--leaf)} .dev.on span{color:var(--green2);font-weight:700}
+  .dev.pump.on i{background:var(--blue)} .dev.pump.on span{color:var(--blue)}
+
+  /* loop */
+  .loop{display:flex;align-items:center;gap:1vw;min-width:0}
+  .step{display:flex;align-items:center;gap:1vw;padding:1.5vh 1.2vw;border-radius:1.6vh;border:1px solid transparent;
+    opacity:.5;transition:all .35s;flex:0 1 auto;min-width:0}
+  .step>div{min-width:0}
+  body.phone-open .conn{display:none} body.phone-open .loop{justify-content:space-between}
+  body.phone-open .step{gap:.5vw;padding:1.4vh .7vw} body.phone-open .step .n{font-size:2.1vh} body.phone-open .step span{font-size:1.45vh}
+  .step .n{font-size:2.7vh;font-weight:600;color:var(--ink2);font-variant-numeric:tabular-nums}
+  .step b{display:flex;align-items:center;gap:.5vw;font-size:2vh;font-weight:650}
+  .step b::before{content:"";width:1.2vh;height:1.2vh;border-radius:50%;border:2px solid var(--muted)}
+  .step span{display:block;color:var(--muted);font-size:1.55vh;margin-top:.3vh;padding-left:1.8vh;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .step.on{opacity:1;background:var(--card);border-color:var(--line);box-shadow:var(--sh)}
+  .step.on b::before{background:var(--ink);border-color:var(--ink)}
+  .step.on.amber b::before{background:#e08a1e;border-color:#e08a1e}
+  .step.on.blue b::before{background:var(--blue);border-color:var(--blue)}
+  .conn{flex:1;height:1px;background:#cdd5cf;min-width:1vw}
+
+  /* grower's phone (demo view): slides in only while a watering ask is open or just finished */
+  .phone{position:fixed;right:2.6vw;top:50%;width:21vw;min-width:320px;height:86vh;transform:translate(130%,-50%);
+    transition:transform .6s cubic-bezier(.2,.9,.25,1);background:#16191a;border-radius:6vh;padding:1.1vh;
+    box-shadow:0 3vh 7vh rgba(20,30,25,.28),inset 0 0 0 2px #3a3f41;z-index:10}
+  .phone.show{transform:translate(0,-50%)}
+  .phone .scr{height:100%;border-radius:5vh;overflow:hidden;background:#f2f1ee;display:flex;flex-direction:column;position:relative}
+  .phone .sb{display:flex;align-items:center;justify-content:space-between;padding:2.2vh 2.2vw 1vh;font-size:1.7vh;font-weight:650;background:#fff}
+  .phone .isl{position:absolute;left:50%;top:1.4vh;transform:translateX(-50%);width:30%;height:3.4vh;border-radius:99px;background:#0b0d0e}
+  .phone .sb svg{height:1.5vh;width:auto;fill:var(--ink)}
+  .phone .top{background:#fff;padding:1vh 1.1vw 1.6vh;display:flex;align-items:center;gap:.8vw;border-bottom:1px solid #ecebe7}
+  .phone .av{width:5vh;height:5vh;border-radius:50%;background:var(--green);display:grid;place-items:center;flex:none}
+  .phone .av svg{width:2.5vh;height:2.5vh;fill:#fff}
+  .phone .top>div{min-width:0}
+  .phone .top b{display:block;font-size:2.1vh} .phone .top span{display:block;font-size:1.45vh;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .phone .min{margin-left:auto;background:#fff;color:var(--ink);border:1px solid #e3e3df;border-radius:50%;
+    font:inherit;font-size:2.2vh;font-weight:800;width:4.4vh;height:4.4vh;cursor:pointer;line-height:1;flex:none}
+  .phone .tag{font-size:1.4vh;color:var(--muted);text-align:center;padding:.6vh;margin:1vh .8vw 0;background:#e7e6e2;border-radius:.8vh}
+  .phone .msgs{flex:1;padding:1.4vh .9vw;display:flex;flex-direction:column;gap:1.2vh;overflow:hidden}
+  .phone .b{max-width:90%;padding:1.4vh 1vw;border-radius:1.6vh;font-size:1.95vh;line-height:1.4;color:var(--ink);white-space:pre-line;
+    box-shadow:0 1px 2px rgba(0,0,0,.06);animation:pop .35s ease-out}
   .phone .b.in{background:#fff;align-self:flex-start;border-top-left-radius:.4vh}
-  .phone .b.out{background:#d6efc8;align-self:flex-end;border-top-right-radius:.4vh}
-  .phone .b small{display:block;margin-top:.5vh;font-size:1.3vh;color:#6b7a6e;text-align:right}
-  .phone .acts{display:flex;gap:.6vw;width:88%}
-  .phone .acts button{flex:1;font:inherit;font-size:2.1vh;font-weight:700;border-radius:1.2vh;padding:1.4vh;border:0;cursor:pointer}
-  .phone .ok{background:#2f7d3e;color:#fff} .phone .no{background:#fff;color:#1d2a21;box-shadow:inset 0 0 0 1px #cdd6c8}
+  .phone .b.out{background:#d9f2d7;align-self:flex-end;border-top-right-radius:.4vh}
+  .phone .b small{display:block;margin-top:.6vh;font-size:1.3vh;color:var(--muted);text-align:right}
+  .phone .acts{display:flex;gap:.6vw;width:94%}
+  .phone .acts button{flex:1;font:inherit;font-size:2.1vh;font-weight:700;border-radius:1.2vh;padding:1.6vh;border:0;cursor:pointer}
+  .phone .ok{background:var(--green);color:#fff} .phone .no{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px #dcdcd7}
   @keyframes pop{from{opacity:0;transform:translateY(1vh)}}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></symbol>
+  <symbol id="i-therm" viewBox="0 0 24 24"><path d="M10 14V5a2 2 0 1 1 4 0v9a4 4 0 1 1-4 0z"/><path d="M12 9v7"/></symbol>
+  <symbol id="i-hum" viewBox="0 0 24 24"><path d="M12 7s4 4.3 4 7a4 4 0 0 1-8 0c0-2.7 4-7 4-7z"/><path d="M12 2v1.5M4.5 5l1 1M19.5 5l-1 1M2.5 12H4M20 12h1.5"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M2 12h4l3-7 4 14 3-7h6"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7 15h10"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M20 4C10 4 4 9 4 16c0 1.5.3 2.8.8 4 1-4 4.2-7.4 9.2-9-4 2.3-6.6 5.4-7.6 9.2C8 20.7 9.4 21 11 21c6 0 9-6 9-17z"/></symbol>
+</svg>
 <div class="wrap">
   <header>
-    <div><span class="brand">Cultive<span> AI</span></span><span class="sub" id="zone">Live polyhouse demo</span></div>
-    <div class="clock"><button class="pill" id="pill" onclick="restorePhone()">Grower's phone ▸</button><span class="live"></span><span id="clock">--:--:--</span></div>
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="#2f9e55"><use href="#i-leaf"/></svg>cultive<span class="ai">AI</span></div>
+      <div class="sep"></div>
+      <div class="zone"><span id="zone">Anthurium demo tray</span> · <span class="dot pulse"></span><b>Live</b></div>
+    </div>
+    <div class="clockbox">
+      <button class="pill" id="pill" onclick="restorePhone()">Grower's phone ▸</button>
+      <div class="clock"><div class="t"><span class="dot"></span><span id="clock">--:--:--</span></div><div class="d" id="date"></div></div>
+    </div>
   </header>
 
-  <div class="banner" id="banner"><div class="dot"></div><div class="h" id="headline">Connecting…</div></div>
+  <div class="banner" id="banner">
+    <div class="ic"><svg><use href="#i-drop"/></svg></div>
+    <div><div class="k" id="kicker">Status</div><div class="h" id="headline">Connecting…</div></div>
+    <svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+  </div>
 
   <div class="main">
     <div class="card hero">
-      <div class="label">Pot moisture · soil probe <span style="float:right;color:var(--amber);text-transform:none;letter-spacing:0">- - - water line</span></div>
+      <div class="top"><div class="label">Pot moisture · soil probe</div><div class="legend"><i></i><span id="legend">Safe threshold</span></div></div>
       <div class="heroval" id="moist">--<small>%</small></div>
-      <div class="hint" id="moistHint">Waters automatically below --%, with your approval</div>
-      <svg class="spark" id="spark" viewBox="0 0 600 160" preserveAspectRatio="none"></svg>
+      <div><span class="state" id="mstate">--</span></div>
+      <div class="hrow"><div class="hint" id="moistHint">Asks to water below --%, only waters when a person approves.</div><div class="range">Last 15 min</div></div>
+      <div class="chart" id="chart"><svg id="spark"></svg></div>
     </div>
     <div class="tiles">
-      <div class="card tile"><div class="label">Air temperature</div><div class="v" id="t_air">--<small>°C</small></div><div class="note">Breathe on the sensor</div></div>
-      <div class="card tile"><div class="label">Humidity</div><div class="v" id="t_hum">--<small>%</small></div><div class="note">Anthuriums like 70–85%</div></div>
-      <div class="card tile"><div class="label">Light</div><div class="v" id="t_lux">--<small>lux</small></div><div class="note" id="luxNote">Shine a torch on it</div></div>
-      <div class="card tile" id="devTile"><div class="label">Devices</div>
+      <div class="card tile"><div class="label"><svg><use href="#i-therm"/></svg>Air temperature</div><div class="v" id="t_air">--<small>°C</small></div><div class="note">Breathe on the sensor</div></div>
+      <div class="card tile"><div class="label"><svg><use href="#i-hum"/></svg>Humidity</div><div class="v" id="t_hum">--<small>%</small></div><div class="note">Anthuriums like 70–85%</div></div>
+      <div class="card tile"><div class="label"><svg><use href="#i-sun"/></svg>Light</div><div class="v" id="t_lux">--<small>lux</small></div><div class="note" id="luxNote">Shine a torch on it</div></div>
+      <div class="card tile"><div class="label"><svg><use href="#i-layers"/></svg>Devices</div>
         <div class="devs"><div class="dev" id="d_pump"><i></i><b>Pump</b><span>--</span></div>
         <div class="dev" id="d_fan"><i></i><b>Fan</b><span>--</span></div>
         <div class="dev" id="d_led"><i></i><b>LED strip</b><span>--</span></div></div></div>
-      <div class="card tile"><div class="label">Soil EC</div><div class="v" id="t_ec">--<small>µS/cm</small></div><div class="note">Fertiliser strength in the pot</div></div>
-      <div class="card tile"><div class="label">Soil pH</div><div class="v" id="t_ph">--<small>pH</small></div><div class="note">Anthuriums like 5.5–6.5</div></div>
+      <div class="card tile"><div class="label"><svg><use href="#i-pulse"/></svg>Soil EC</div><div class="v" id="t_ec">--<small>µS/cm</small></div><div class="note">Fertiliser strength in the pot</div></div>
+      <div class="card tile"><div class="label"><svg><use href="#i-flask"/></svg>Soil pH</div><div class="v" id="t_ph">--<small>pH</small></div><div class="note">Anthuriums like 5.5–6.5</div></div>
     </div>
   </div>
 
   <div class="loop">
-    <div class="step" id="s1"><b>1 · Sense</b><span>Sensors read every 2 s</span></div>
-    <div class="step" id="s2"><b>2 · Understand</b><span>Pot below the safe line</span></div>
-    <div class="step" id="s3"><b>3 · Ask</b><span>WhatsApp: approve?</span></div>
-    <div class="step" id="s4"><b>4 · Act</b><span>Pump runs, stops itself</span></div>
-    <div class="step" id="s5"><b>5 · Measure</b><span>Result logged as data</span></div>
+    <div class="step" id="s1"><div class="n">01</div><div><b>Sense</b><span>Sensors read every 2 s</span></div></div><div class="conn"></div>
+    <div class="step" id="s2"><div class="n">02</div><div><b>Understand</b><span>Pot below the safe line</span></div></div><div class="conn"></div>
+    <div class="step" id="s3"><div class="n">03</div><div><b>Ask</b><span>WhatsApp: approve?</span></div></div><div class="conn"></div>
+    <div class="step" id="s4"><div class="n">04</div><div><b>Act</b><span>Pump runs, stops itself</span></div></div><div class="conn"></div>
+    <div class="step" id="s5"><div class="n">05</div><div><b>Measure</b><span>Result logged as data</span></div></div>
   </div>
 </div>
+
 <div class="phone" id="phone"><div class="scr">
-  <div class="top"><div class="av">C</div><div><b>Cultive AI</b><span>Grower's phone · demo view</span></div><button class="min" title="Minimise" onclick="minimisePhone()">–</button></div>
+  <div class="isl"></div>
+  <div class="sb"><span id="ptime">--:--</span>
+    <svg viewBox="0 0 52 14"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6" width="3" height="8" rx="1"/><rect x="10" y="3" width="3" height="11" rx="1"/><rect x="15" y="0" width="3" height="14" rx="1"/><path d="M27 4.5a10 10 0 0 1 12 0l-1.6 1.8a7.5 7.5 0 0 0-8.8 0zM29.6 7.6a6 6 0 0 1 6.8 0L33 11.5z"/><rect x="42" y="2" width="9" height="10" rx="2.5"/></svg></div>
+  <div class="top"><div class="av"><svg viewBox="0 0 24 24"><use href="#i-leaf"/></svg></div>
+    <div><b>Cultive AI</b><span>Grower's phone · demo view</span></div>
+    <button class="min" title="Minimise" onclick="minimisePhone()">–</button></div>
   <div class="tag">Real alerts arrive on WhatsApp</div>
   <div class="msgs" id="msgs"></div>
 </div></div>
+
 <script>
 const $ = id => document.getElementById(id);
 const fmt = (v, d=0) => v === null || v === undefined ? "--" : Number(v).toLocaleString("en-IN",{maximumFractionDigits:d,minimumFractionDigits:d});
@@ -147,16 +211,33 @@ function setVal(id, v, d, unit){
   if (prev[id] !== undefined && prev[id] !== s){ el.classList.add("flash"); setTimeout(()=>el.classList.remove("flash"),600); }
   prev[id] = s; el.innerHTML = s + `<small>${unit}</small>`;
 }
+// moisture chart: fixed 0-100 axis, dashed safe threshold, time labels
 function spark(hist, dry){
-  const svg = $("spark"); if (!hist.length){ svg.innerHTML = ""; return; }
-  const vs = hist.map(h=>h[1]); const lo = Math.min(dry-5, ...vs), hi = Math.max(dry+10, ...vs);
-  const t0 = hist[0][0], t1 = Math.max(hist[hist.length-1][0], t0+1);
-  const X = t => (t-t0)/(t1-t0)*600, Y = v => 150 - (v-lo)/(hi-lo)*140;
-  const pts = hist.map(h=>`${X(h[0]).toFixed(1)},${Y(h[1]).toFixed(1)}`).join(" ");
-  svg.innerHTML =
-    `<line x1="0" x2="600" y1="${Y(dry)}" y2="${Y(dry)}" stroke="#f3b23c" stroke-dasharray="6 6" stroke-width="2" opacity=".7"/>`+
-    `<polyline points="0,160 ${pts} 600,160" fill="#7fd18b" opacity=".12" stroke="none"/>`+
-    `<polyline points="${pts}" fill="none" stroke="#7fd18b" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const svg = $("spark"), box = $("chart").getBoundingClientRect();
+  const W = Math.max(200, box.width), H = Math.max(80, box.height);
+  const L = 42, R = 8, T = 8, B = 30, fs = Math.max(11, H * 0.06);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const Y = v => T + (1 - Math.max(0, Math.min(100, v)) / 100) * (H - T - B);
+  let g = "";
+  for (const v of [0,25,50,75,100])
+    g += `<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#edf0ec"/>` +
+         `<text x="${L-10}" y="${Y(v)+fs*0.35}" font-size="${fs}" fill="#7a877f" text-anchor="end">${v}</text>`;
+  g += `<line x1="${L}" x2="${W-R}" y1="${Y(dry)}" y2="${Y(dry)}" stroke="#3d4a42" stroke-dasharray="7 6" stroke-width="1.6"/>`;
+  if (hist.length > 1) {
+    const t0 = hist[0][0], t1 = Math.max(hist[hist.length-1][0], t0 + 1);
+    const X = t => L + (t - t0) / (t1 - t0) * (W - L - R);
+    const pts = hist.map(h => `${X(h[0]).toFixed(1)},${Y(h[1]).toFixed(1)}`).join(" ");
+    g = `<polygon points="${X(t0)},${Y(0)} ${pts} ${X(t1)},${Y(0)}" fill="#e9ede8"/>` + g +
+        `<polyline points="${pts}" fill="none" stroke="#141a16" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    let lastLbl = "";
+    for (let i = 0; i <= 5; i++) {
+      const t = t0 + (t1 - t0) * i / 5;
+      const lbl = new Date(t*1000).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",hour12:false});
+      if (lbl === lastLbl) continue; lastLbl = lbl;
+      g += `<text x="${X(t)}" y="${H-6}" font-size="${fs}" fill="#7a877f" text-anchor="${i===0?"start":i===5?"end":"middle"}">${new Date(t*1000).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",hour12:false})}</text>`;
+    }
+  }
+  svg.innerHTML = g;
 }
 const hm = ts => new Date(ts*1000).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
 const esc = t => String(t||"").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
@@ -207,23 +288,31 @@ function phone(s){
   if (html && html !== lastChat) $("msgs").innerHTML = html;  // only redraw on change so bubbles don't re-animate
   lastChat = html || lastChat;
 }
-const STEPS ={ok:[1], offline:[], dry:[1,2], asking:[1,2,3], watering:[4], measuring:[4,5], done:[5]};
+const KICK = {ok:"Live monitoring", dry:"Action required", asking:"Action required", watering:"Watering",
+              measuring:"Measuring", done:"Done", offline:"Sensor offline"};
+const STEPS = {ok:[1], offline:[], dry:[1,2], asking:[1,2,3], watering:[4], measuring:[4,5], done:[5]};
 async function tick(){
   try{
     const s = await (await fetch("/api/state",{cache:"no-store"})).json();
     const v = s.values;
-    $("zone").textContent = s.zone + " · live";
+    $("zone").textContent = s.zone;
     $("banner").className = "banner " + s.phase;
-    $("headline").textContent = s.headline;
+    $("kicker").textContent = KICK[s.phase] || "Status";
+    $("headline").textContent = s.headline + (/[.!?…]$/.test(s.headline) ? "" : ".");
     setVal("moist", v.soil_moisture, 0, "%");
-    $("moist").classList.toggle("dry", v.soil_moisture !== null && v.soil_moisture < s.dry_below);
-    $("moistHint").textContent = `Asks to water below ${s.dry_below}%, only waters when a person approves`;
+    const m = v.soil_moisture, st = $("mstate");
+    if (m === null || m === undefined) { st.className = "state"; st.textContent = "No reading"; }
+    else if (m < s.dry_below / 2) { st.className = "state dry"; st.textContent = "Very dry"; }
+    else if (m < s.dry_below) { st.className = "state dry"; st.textContent = "Dry"; }
+    else if (m > 70) { st.className = "state wet"; st.textContent = "Wet"; }
+    else { st.className = "state"; st.textContent = "Healthy"; }
+    $("legend").textContent = `Safe threshold (${s.dry_below}%)`;
+    $("moistHint").textContent = `Asks to water below ${s.dry_below}%, only waters when a person approves.`;
     setVal("t_air", v.air_temp, 1, "°C");
     setVal("t_hum", v.air_humidity, 0, "%");
     setVal("t_lux", v.light_lux, 0, "lux");
     setVal("t_ec", v.soil_ec, 0, "µS/cm");
     setVal("t_ph", v.soil_ph, 1, "pH");
-    const f = s.fan || {};
     const D = s.devices || {};
     for (const k of ["pump","fan","led"]) {
       const d = D[k], el = $("d_"+k);
@@ -241,9 +330,15 @@ async function tick(){
       if (on.includes(i) && (s.phase==="asking"||s.phase==="dry")) el.classList.add("amber");
       if (on.includes(i) && (s.phase==="watering"||s.phase==="measuring")) el.classList.add("blue");
     }
-  }catch(e){ $("headline").textContent = "Reconnecting to the Pi…"; $("banner").className="banner offline"; }
+  }catch(e){ $("kicker").textContent = "Offline"; $("headline").textContent = "Reconnecting to the Pi…"; $("banner").className="banner offline"; }
 }
-setInterval(()=>{ $("clock").textContent = new Date().toLocaleTimeString("en-IN",{hour12:false}); },1000);
+function clock(){
+  const d = new Date();
+  $("clock").textContent = d.toLocaleTimeString("en-IN",{hour12:false});
+  $("date").textContent = d.toLocaleDateString("en-IN",{weekday:"short", day:"numeric", month:"short"});
+  $("ptime").textContent = d.toLocaleTimeString("en-IN",{hour:"numeric",minute:"2-digit",hour12:true}).replace(/\s?[ap]m/i,"");
+}
+setInterval(clock, 1000); clock();
 setInterval(tick, 1500); tick();
 </script>
 </body>
