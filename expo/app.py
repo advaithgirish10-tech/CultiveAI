@@ -22,6 +22,7 @@ from flask import Flask, jsonify, request, send_from_directory
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import whatsapp  # noqa: E402
+import assistant  # noqa: E402
 
 log = logging.getLogger("expo")
 
@@ -89,7 +90,9 @@ class Engine:
                 return last[0], "an ask is already open"
             m = self.latest(c, "soil_moisture")
             mtxt = f"{m:.0f}%" if m is not None else "unknown"
-            msg = (f"{self.o['zone_name']}: pot moisture is {mtxt} (below {self.o['dry_below']:.0f}%).\n"
+            why = (f"(below {self.o['dry_below']:.0f}%)" if m is not None and m < self.o["dry_below"]
+                   else "(you asked to water)")
+            msg = (f"{self.o['zone_name']}: pot moisture is {mtxt} {why}.\n"
                    f"Recommendation: water for {self.o['water_s']} seconds.\nApprove?")
             cur = c.execute("INSERT INTO asks(ts,reason,message,moisture_before,status) VALUES (?,?,?,?,?)",
                             (time.time(), reason, msg, m, "pending"))
@@ -337,6 +340,16 @@ def create_app(engine):
     @app.get("/operator")
     def operator():
         return send_from_directory(app.static_folder, "operator.html")
+
+    @app.post("/api/chat")
+    def api_chat():
+        q = str((request.get_json(silent=True) or {}).get("q", ""))[:300]
+        try:
+            a = assistant.answer(q, engine.state(), create_ask=engine.create_ask)
+        except Exception as e:  # never break the demo phone
+            log.exception("chat failed")
+            a = "Sorry, I couldn't read the sensors just now. Try again in a moment."
+        return jsonify(ok=True, answer=a)
 
     @app.get("/api/state")
     def api_state():

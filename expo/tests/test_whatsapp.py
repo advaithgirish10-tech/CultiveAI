@@ -70,3 +70,18 @@ def test_led_strip_goes_off_on_torch_and_stays_off_while_bright(tmp_path):
     assert len(st.pending_commands()) == 1                             # no repeat mid-period
     eng.light_tick(eng.light_until - 1)
     assert len(st.pending_commands()) == 2                             # still bright near the end: extended, no blink
+
+
+def test_chat_answers_from_live_values():
+    import assistant
+    s = {"values": {"soil_moisture": 12.0, "air_temp": 30.4, "air_humidity": 76.0, "light_lux": 210.0,
+                    "soil_ec": 640.0, "soil_ph": 6.1},
+         "devices": {"pump": {"on": False, "left": 0}, "fan": {"on": True, "left": 7}, "led": {"on": True, "left": 0}},
+         "dry_below": 25, "water_s": 4, "asks": [], "ask": None, "offline_devices": []}
+    assert "12%" in assistant.answer("how dry is the soil?", s)
+    assert "30.4°C" in assistant.answer("What's the temperature", s)
+    assert "7s left" in assistant.answer("is the fan on", s)
+    assert "6.1" in assistant.answer("pH?", s)
+    opened = []
+    assert "Approve" in assistant.answer("water it please", s, create_ask=opened.append) and opened
+    assert "ask me about" in assistant.answer("asdfgh", s)

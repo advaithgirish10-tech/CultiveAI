@@ -26,6 +26,9 @@
   .no{background:#fff;color:var(--ink);border:1px solid #cdd6c8 !important}
   .idle{margin:auto;text-align:center;color:var(--muted);font-size:15px;line-height:1.5;padding:24px}
   .idle b{display:block;color:var(--ink);font-size:18px;margin-bottom:6px}
+  .bar{display:flex;gap:8px;padding:10px 12px 16px;background:var(--bg);position:sticky;bottom:0}
+  .bar input{flex:1;min-width:0;font:inherit;font-size:16px;border:1px solid #cdd6c8;border-radius:99px;padding:12px 16px;outline:none;background:#fff}
+  .bar button{border:0;border-radius:50%;width:46px;height:46px;background:var(--leaf);color:#fff;font-size:18px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -36,6 +39,7 @@
   </header>
   <div class="demo">Demo view of the grower's phone. Real alerts arrive on WhatsApp.</div>
   <div class="chat" id="chat"></div>
+  <form class="bar" onsubmit="ask(event)"><input id="q" placeholder="Ask about the tray…" autocomplete="off" enterkeyhint="send"><button title="Send">➤</button></form>
 </div>
 <script>
 const $ = id => document.getElementById(id);
@@ -79,12 +83,25 @@ function bubbles(s){
 }
 function esc(t){ return String(t||"").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
 
+let qa = [], last = "";
+async function ask(e){
+  e.preventDefault();
+  const q = $("q").value.trim(); if (!q) return;
+  $("q").value = ""; qa.push({q, a:"…", ts: Date.now()/1000}); refresh();
+  let a = "Sorry, I can't reach the Pi right now.";
+  try { a = (await (await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q})})).json()).answer; } catch(err) {}
+  qa[qa.length-1].a = a; qa = qa.slice(-10); refresh();
+}
 async function refresh(){
   try {
     const s = await (await fetch("/api/state", {cache:"no-store"})).json();
     $("sub").textContent = s.zone;
     const html = bubbles(s);
-    $("chat").innerHTML = html || `<div class="idle"><b>All good</b>The pot has enough water.<br>You'll get a message here when it needs watering.</div>`;
+    const intro = qa.length ? `<div class="b in">Hi! Ask me anything about the tray.</div>` :
+      `<div class="idle"><b>All good</b>You'll get a message here when the pot needs water.<br>Or ask me anything below: moisture, temperature, the pump, or what Cultive AI is.</div>`;
+    const conv = qa.map(x => `<div class="b out">${esc(x.q)}<small>${hm(x.ts)}</small></div><div class="b in">${esc(x.a)}</div>`).join("");
+    const all = (html || intro) + conv;
+    if (all !== last) { $("chat").innerHTML = all; $("chat").scrollTop = 1e6; last = all; }
   } catch(e) {}
 }
 setInterval(refresh, 1500); refresh();

@@ -128,6 +128,11 @@
   .phone .acts{display:flex;gap:.6vw;width:94%}
   .phone .acts button{flex:1;font:inherit;font-size:2.1vh;font-weight:700;border-radius:1.2vh;padding:1.6vh;border:0;cursor:pointer}
   .phone .ok{background:var(--green);color:#fff} .phone .no{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px #dcdcd7}
+  .phone .bar{display:flex;gap:.5vw;padding:1vh .8vw 2vh;background:#f2f1ee}
+  .phone .bar input{flex:1;min-width:0;font:inherit;font-size:1.9vh;border:1px solid #dcdcd7;border-radius:99px;padding:1.2vh 1vw;background:#fff;outline:none}
+  .phone .bar button{border:0;border-radius:50%;width:5vh;height:5vh;background:var(--green);color:#fff;font-size:2.2vh;cursor:pointer;flex:none}
+  .phone .msgs{overflow-y:auto !important}
+  .pill.show,.pill.always{display:inline-block}
   @keyframes pop{from{opacity:0;transform:translateY(1vh)}}
 </style>
 </head>
@@ -150,7 +155,7 @@
       <div class="zone"><span id="zone">Anthurium demo tray</span> · <span class="dot pulse"></span><b>Live</b></div>
     </div>
     <div class="clockbox">
-      <button class="pill" id="pill" onclick="restorePhone()">Grower's phone ▸</button>
+      <button class="pill always" id="pill" onclick="restorePhone()">Grower's phone ▸</button>
       <div class="clock"><div class="t"><span class="dot"></span><span id="clock">--:--:--</span></div><div class="d" id="date"></div></div>
     </div>
   </header>
@@ -200,6 +205,7 @@
     <button class="min" title="Minimise" onclick="minimisePhone()">–</button></div>
   <div class="tag">Real alerts arrive on WhatsApp</div>
   <div class="msgs" id="msgs"></div>
+  <form class="bar" onsubmit="ask(event)"><input id="q" placeholder="Ask about the tray…" autocomplete="off"><button title="Send">➤</button></form>
 </div></div>
 
 <script>
@@ -274,19 +280,32 @@ function chat(s){
   }
   return out.join("");
 }
-let lastChat = "", hiddenAsk = null, curAsk = null;
-function minimisePhone(){ hiddenAsk = curAsk; tick(); }
-function restorePhone(){ hiddenAsk = null; tick(); }
+let lastChat = "", hiddenAsk = null, curAsk = null, manualOpen = false, qa = [], lastS = null;
+function minimisePhone(){ hiddenAsk = curAsk; manualOpen = false; tick(); }
+function restorePhone(){ hiddenAsk = null; manualOpen = true; tick(); }
+// chat with the tray: answers come from the Pi's live readings (rule-based, no internet)
+async function ask(e){
+  e.preventDefault();
+  const q = $("q").value.trim(); if (!q) return;
+  $("q").value = ""; qa.push({q, a: "…", ts: Date.now()/1000}); if (lastS) phone(lastS);
+  let a = "Sorry, I can't reach the Pi right now.";
+  try { a = (await (await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q})})).json()).answer; } catch(err) {}
+  qa[qa.length-1].a = a; qa = qa.slice(-6); tick();
+}
 function phone(s){
+  lastS = s;
   const html = chat(s);
   curAsk = s.ask ? s.ask.id : null;
   const hidden = html && hiddenAsk !== null && hiddenAsk === curAsk;   // minimised for this ask only; a new ask pops up again
-  const open = !!html && !hidden;
+  const open = (!!html && !hidden) || manualOpen;
   $("phone").classList.toggle("show", open);
   document.body.classList.toggle("phone-open", open);
-  $("pill").classList.toggle("show", !!hidden);
-  if (html && html !== lastChat) $("msgs").innerHTML = html;  // only redraw on change so bubbles don't re-animate
-  lastChat = html || lastChat;
+  $("pill").style.display = open ? "none" : "";
+  const intro = html ? "" : `<div class="b in">Hi! Ask me anything about the tray: moisture, temperature, the pump, or what Cultive AI is.</div>`;
+  const conv = qa.map(x => `<div class="b out">${esc(x.q)}<small>${hm(x.ts)}</small></div><div class="b in">${esc(x.a)}</div>`).join("");
+  const all = (html || intro) + conv;
+  if (all !== lastChat) { $("msgs").innerHTML = all; $("msgs").scrollTop = 1e6; }  // only redraw on change so bubbles don't re-animate
+  lastChat = all;
 }
 const KICK = {ok:"Live monitoring", dry:"Action required", asking:"Action required", watering:"Watering",
               measuring:"Measuring", done:"Done", offline:"Sensor offline"};
