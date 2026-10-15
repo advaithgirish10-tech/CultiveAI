@@ -156,6 +156,15 @@ class Engine:
         log.info("fan on %ss (%s, by %s)", self.o["fan_s"], reason, by)
         return True, f"fan on for {self.o['fan_s']}s"
 
+    def fan_off(self, by="operator"):
+        if self.o.get("fan_channel") is None:
+            return False, "no fan configured"
+        with self.conn() as c:
+            c.execute("INSERT INTO commands(ts,channel,state,duration_s,source,reason) VALUES (?,?,?,?,?,?)",
+                      (time.time(), self.o["fan_channel"], "off", None, by, "fan off"))
+        self.fan_until = 0.0
+        return True, "fan off"
+
     def fan_tick(self, now):
         """Humidity well above its normal of the last few minutes -> run the fan once, then cool down."""
         if self.o.get("fan_channel") is None or now < self.fan_until + self.o["fan_cooldown_s"]:
@@ -345,7 +354,11 @@ def create_app(engine):
     def api_chat():
         q = str((request.get_json(silent=True) or {}).get("q", ""))[:300]
         try:
-            a = assistant.answer(q, engine.state(), create_ask=engine.create_ask)
+            a = assistant.answer(q, engine.state(), create_ask=engine.create_ask, controls={
+                "fan_on": lambda: engine.fan_on("asked from chat", by="chat"),
+                "fan_off": lambda: engine.fan_off(by="chat"),
+                "led_on": lambda: engine.light_manual(True, by="chat"),
+                "led_off": lambda: engine.light_manual(False, by="chat")})
         except Exception as e:  # never break the demo phone
             log.exception("chat failed")
             a = "Sorry, I couldn't read the sensors just now. Try again in a moment."

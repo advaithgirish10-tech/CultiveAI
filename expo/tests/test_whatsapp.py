@@ -85,3 +85,17 @@ def test_chat_answers_from_live_values():
     opened = []
     assert "Approve" in assistant.answer("water it please", s, create_ask=opened.append) and opened
     assert "ask me about" in assistant.answer("asdfgh", s)
+
+
+def test_chat_switches_fan_and_led():
+    import assistant
+    s = {"values": {}, "devices": {"fan": {"on": False, "left": 0}, "led": {"on": True, "left": 0}},
+         "dry_below": 25, "water_s": 4, "asks": [], "ask": None, "offline_devices": []}
+    calls = []
+    ctl = {k: (lambda k=k: (calls.append(k), (True, k))[1]) for k in ("fan_on", "fan_off", "led_on", "led_off")}
+    assistant.answer("turn on the fan", s, controls=ctl)
+    assistant.answer("switch off the lights", s, controls=ctl)
+    assistant.answer("LED on please", s, controls=ctl)
+    assistant.answer("stop the fan", s, controls=ctl)
+    assert calls == ["fan_on", "led_off", "led_on", "fan_off"]
+    assert "off" in assistant.answer("is the fan on?", s, controls=ctl) and len(calls) == 4   # a question, not a command

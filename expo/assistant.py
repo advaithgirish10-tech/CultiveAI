@@ -4,7 +4,8 @@ import re
 
 HELP = ("You can ask me about: soil moisture, temperature, humidity, light, EC, pH, the pump, "
         "the fan, the LED strip, a full status report, or what Cultive AI is. "
-        "Say \"water it\" and I'll ask for approval to water.")
+        "You can also say \"fan on\", \"fan off\", \"lights on\" or \"lights off\", "
+        "and \"water it\" to ask for approval to water.")
 
 
 def _n(v, d=0, unit=""):
@@ -15,7 +16,7 @@ def _has(q, *words):
     return any(re.search(r"\b" + w, q) for w in words)
 
 
-def answer(q, s, create_ask=None):
+def answer(q, s, create_ask=None, controls=None):
     """q: the question; s: Engine.state() dict; create_ask: callable(reason) to open a watering ask."""
     q = (q or "").lower().strip()
     q = re.sub(r"cultive\s*ai", "cultive", q)   # the brand name shouldn't trigger the "is it AI?" answer
@@ -50,6 +51,24 @@ def answer(q, s, create_ask=None):
         return HELP
     if _has(q, "hi\\b", "hello", "hey\\b", "namaste", "good (morning|evening|afternoon)"):
         return "Hi! I'm watching the Anthurium demo tray. " + HELP
+    # switch the fan / LED strip ("turn on the fan", "lights off"). Questions like "is the fan on?" fall through.
+    controls = controls or {}
+    question = re.match(r"(is|are|was|what|whats|what's|how|why|does|do|can you tell)\b", q)
+    if not question and _has(q, "fan", "led", "lights?\\b", "strip", "lamp"):
+        off = _has(q, "off", "stop", "disable", "kill", "shut")
+        on = _has(q, "on\\b", "start", "enable", "run")
+        if off or on:
+            dev_key = "fan" if _has(q, "fan") else "led"
+            fn = controls.get(f"{dev_key}_{'off' if off else 'on'}")
+            if not fn:
+                return "I can't switch that from here right now."
+            ok, info = fn()
+            name = "fan" if dev_key == "fan" else "LED strip"
+            if not ok:
+                return f"Couldn't switch the {name}: {info}."
+            if dev_key == "fan" and not off:
+                return "Fan on. It runs for 20 seconds, then stops by itself."
+            return f"Done, the {name} is {'off' if off else 'on'}."
     if _has(q, "water (it|now|the|my)", "irrigate", "start watering", "give (it )?water"):
         if s.get("ask") and s["ask"]["status"] in ("pending", "watering"):
             return "There's already a watering request open. Tap Approve above to go ahead."
