@@ -100,7 +100,7 @@
     <div class="tiles">
       <div class="card tile"><div class="label">Air temperature</div><div class="v" id="t_air">--<small>°C</small></div><div class="note">Breathe on the sensor</div></div>
       <div class="card tile"><div class="label">Humidity</div><div class="v" id="t_hum">--<small>%</small></div><div class="note">Anthuriums like 70–85%</div></div>
-      <div class="card tile"><div class="label">Light</div><div class="v" id="t_lux">--<small>lux</small></div><div class="note">Cover it with your hand</div></div>
+      <div class="card tile"><div class="label">Light</div><div class="v" id="t_lux">--<small>lux</small></div><div class="note" id="luxNote">Shine a torch on it</div></div>
       <div class="card tile" id="fanTile"><div class="label">Fan</div><div class="v" id="t_fan">Off</div><div class="note" id="fanNote">Breathe on the air sensor</div></div>
     </div>
   </div>
@@ -198,6 +198,8 @@ async function tick(){
     $("t_fan").innerHTML = f.on ? `On<small>${f.left}s</small>` : "Off";
     $("t_fan").classList.toggle("flash", !!f.on);
     $("fanNote").textContent = f.on ? (f.reason || "Running") : "Breathe on the air sensor";
+    const L = s.light || {};
+    if (L.configured) $("luxNote").textContent = L.strip_on ? "LED strip on · shine a torch on it" : `Bright light: LED strip off, ${L.left}s`;
     spark(s.moisture_history, s.dry_below);
     phone(s);
     const on = STEPS[s.phase] || [];

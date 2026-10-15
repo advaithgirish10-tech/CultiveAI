@@ -89,6 +89,8 @@ relays:
     # Expo wiring: CH1 on the board = channel 0 = mini pump, CH2 = channel 1 = mini fan.
     0: {name: demo-pump, max_on_s: 60}                   # no tank sensor at the expo: keep the bucket full
     1: {name: demo-fan, max_on_s: 120}
+    # CH3 = channel 2 = LED strip, wired to NC (COM -> 12V+, NC -> strip +). Relay ON = strip OFF.
+    2: {name: demo-led-cut, max_on_s: 30}
     # Polyhouse later: test-tray valve, drip, submersible pump (with interlock), Bays 1-5.
     # 2: {name: submersible-pump, max_on_s: 1800, interlock: {param: tank_level_pct, min: 15}}
 
@@ -106,3 +108,6 @@ expo:
   fan_s: 20             # how long the fan runs per trigger
   fan_rise: 8           # humidity points above its recent normal that trigger the fan
   fan_cooldown_s: 40    # gap after the fan stops before it can trigger again
+  light_channel: 2      # relay channel the LED strip is wired to (NC contact: strip is ON unless the relay is ON)
+  light_off_s: 10       # strip goes off this long when a torch hits the lux sensor (stays off while it stays bright)
+  light_bright_lux: 1500  # lux that counts as "torch". Room is ~200-500. Check the TV with the strip on and set well above

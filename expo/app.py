@@ -28,7 +28,10 @@ log = logging.getLogger("expo")
 DEFAULTS = {"valve_channel": 0, "water_s": 20, "dry_below": 25.0, "cooldown_s": 120,
             "ask_expire_s": 300, "settle_s": 30, "zone_name": "Anthurium demo tray",
             # fan rule: humidity jumps above its recent normal (e.g. someone breathes on the sensor)
-            "fan_channel": None, "fan_s": 20, "fan_rise": 8.0, "fan_cooldown_s": 40}
+            "fan_channel": None, "fan_s": 20, "fan_rise": 8.0, "fan_cooldown_s": 40,
+            # light rule: bright light on the lux sensor (a torch) -> LED strip off for light_off_s.
+            # The strip is wired to the relay's NC contact, so relay ON = strip OFF and a dead Pi leaves it lit.
+            "light_channel": None, "light_off_s": 10, "light_bright_lux": 1500}
 
 ASK_SCHEMA = """
 CREATE TABLE IF NOT EXISTS asks (
@@ -58,6 +61,7 @@ class Engine:
         self.last_error = ""
         self.fan_until = 0.0
         self.fan_reason = ""
+        self.light_until = 0.0
         with self.conn() as c:
             c.executescript(ASK_SCHEMA)
 
@@ -155,10 +159,35 @@ class Engine:
         if cur - normal >= self.o["fan_rise"]:
             self.fan_on(f"humidity {cur:.0f}%, {cur - normal:.0f} points above normal")
 
+    def light_off(self, reason, by="rule", extend=False):
+        """Switch the LED strip OFF for light_off_s (relay ON on an NC-wired strip). Re-armed while it stays bright."""
+        if self.o.get("light_channel") is None:
+            return False, "no LED strip configured"
+        now = time.time()
+        if now < self.light_until and not extend:
+            return False, "strip already off"
+        with self.conn() as c:
+            c.execute("INSERT INTO commands(ts,channel,state,duration_s,source,reason) VALUES (?,?,?,?,?,?)",
+                      (now, self.o["light_channel"], "on", self.o["light_off_s"], by, reason))
+        self.light_until = now + self.o["light_off_s"]
+        log.info("LED strip off %ss (%s, by %s)", self.o["light_off_s"], reason, by)
+        return True, f"LED strip off for {self.o['light_off_s']}s"
+
+    def light_tick(self, now):
+        # still dark-period with >3 s left: nothing to do. In the last 3 s, re-arm if the torch is still on,
+        # so the strip doesn't blink back on between two 10 s periods (a new ON resets the relay deadline).
+        if self.o.get("light_channel") is None or now < self.light_until - 3:
+            return
+        with self.conn() as c:
+            lux = self.latest(c, "light_lux", max_age=10)
+        if lux is not None and lux >= self.o["light_bright_lux"]:
+            self.light_off(f"bright light {lux:.0f} lux", extend=now < self.light_until)
+
     # ---------- the rules loop ----------
     def tick(self):
         now = time.time()
         self.fan_tick(now)
+        self.light_tick(now)
         with self.conn() as c:
             ask = self.current_ask(c)
             m = self.latest(c, "soil_moisture")
@@ -243,6 +272,9 @@ class Engine:
             "fan": {"configured": self.o.get("fan_channel") is not None,
                     "on": now < self.fan_until, "left": max(0, round(self.fan_until - now)),
                     "reason": self.fan_reason},
+            "light": {"configured": self.o.get("light_channel") is not None,
+                      "strip_on": now >= self.light_until, "left": max(0, round(self.light_until - now)),
+                      "bright_lux": self.o["light_bright_lux"]},
             "whatsapp": "ready" if whatsapp.configured() else "not configured",
             "last_error": self.last_error,
         }

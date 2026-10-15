@@ -48,3 +48,25 @@ def test_fan_rule_triggers_on_humidity_jump(tmp_path):
     assert any(c[1] == 1 and c[2] == "on" for c in cmds)
     ok, info = eng.fan_on("again")
     assert not ok                                                   # no double trigger while running
+
+
+def test_led_strip_goes_off_on_torch_and_stays_off_while_bright(tmp_path):
+    import time
+    import app as expo_app
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "edge"))
+    from cultive_edge.store import Store
+    db = str(tmp_path / "t.db")
+    st = Store(db)
+    eng = expo_app.Engine(db, {"light_channel": 2, "light_off_s": 10, "light_bright_lux": 1500})
+    st.add_readings([(time.time(), "c", "s", "z", "light-1", "light_lux", 300.0, "lux")])
+    eng.light_tick(time.time())
+    assert eng.light_until == 0 and not st.pending_commands()        # normal room: strip stays on
+    st.add_readings([(time.time(), "c", "s", "z", "light-1", "light_lux", 9000.0, "lux")])
+    now = time.time()
+    eng.light_tick(now)
+    assert abs(eng.light_until - (now + 10)) < 1                       # torch: strip off for 10 s
+    assert [(c[1], c[2], c[3]) for c in st.pending_commands()] == [(2, "on", 10)]
+    eng.light_tick(now + 2)
+    assert len(st.pending_commands()) == 1                             # no repeat mid-period
+    eng.light_tick(eng.light_until - 1)
+    assert len(st.pending_commands()) == 2                             # still bright near the end: extended, no blink
