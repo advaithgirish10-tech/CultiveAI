@@ -193,7 +193,7 @@ class SimBus:
         return {
             "air_temp": 24 + 9 * day + n(0, 0.3),
             "air_humidity": 88 - 25 * day + n(0, 1),
-            "light_lux": 40000 * day + n(0, 200),
+            "light_lux": max(0, 40000 * day + n(0, 200)),  # no negative -> no u16 wrap to 65000
             "soil_moisture": self.soil + n(0, 0.3),
             "soil_temp": 23 + 4 * day + n(0, 0.2),
             "soil_ec": 650 + n(0, 15),

@@ -182,6 +182,23 @@ class Engine:
         log.info("LED strip off %ss (%s, by %s)", self.o["light_off_s"], reason, by)
         return True, f"LED strip off for {self.o['light_off_s']}s"
 
+    def light_manual(self, on, by="operator"):
+        """Operator switch. OFF holds the relay on for up to an hour (NC wiring: relay ON = strip OFF)."""
+        if self.o.get("light_channel") is None:
+            return False, "no LED strip configured"
+        now = time.time()
+        with self.conn() as c:
+            if on:
+                c.execute("INSERT INTO commands(ts,channel,state,duration_s,source,reason) VALUES (?,?,?,?,?,?)",
+                          (now, self.o["light_channel"], "off", None, by, "LED strip on (operator)"))
+                self.light_until = 0.0
+            else:
+                c.execute("INSERT INTO commands(ts,channel,state,duration_s,source,reason) VALUES (?,?,?,?,?,?)",
+                          (now, self.o["light_channel"], "on", 3600, by, "LED strip off (operator)"))
+                self.light_until = now + 3600
+        log.info("LED strip %s by %s", "on" if on else "off", by)
+        return True, "LED strip " + ("on" if on else "off (for up to 1 hour, or until you switch it on)")
+
     def light_tick(self, now):
         # still dark-period with >3 s left: nothing to do. In the last 3 s, re-arm if the torch is still on,
         # so the strip doesn't blink back on between two 10 s periods (a new ON resets the relay deadline).
@@ -234,7 +251,7 @@ class Engine:
         now = time.time()
         with self.conn() as c:
             vals = {p: self.latest(c, p) for p in
-                    ("soil_moisture", "soil_temp", "soil_ec", "air_temp", "air_humidity", "light_lux",
+                    ("soil_moisture", "soil_temp", "soil_ec", "soil_ph", "air_temp", "air_humidity", "light_lux",
                      "tank_level_pct", "reservoir_ph")}
             hist = c.execute("SELECT ts, value FROM readings WHERE param='soil_moisture' AND ts>? ORDER BY ts",
                              (now - 900,)).fetchall()
@@ -332,6 +349,16 @@ def create_app(engine):
     def api_pump():
         body = request.get_json(silent=True) or {}
         ok, info = engine.pump_manual(body.get("s"))
+        return jsonify(ok=ok, info=info)
+
+    @app.post("/api/led/on")
+    def api_led_on():
+        ok, info = engine.light_manual(True)
+        return jsonify(ok=ok, info=info)
+
+    @app.post("/api/led/off")
+    def api_led_off():
+        ok, info = engine.light_manual(False)
         return jsonify(ok=ok, info=info)
 
     @app.post("/api/fan")

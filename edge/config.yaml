@@ -90,7 +90,7 @@ relays:
     0: {name: demo-pump, max_on_s: 60}                   # no tank sensor at the expo: keep the bucket full
     1: {name: demo-fan, max_on_s: 120}
     # CH3 = channel 2 = LED strip, wired to NC (COM -> 12V+, NC -> strip +). Relay ON = strip OFF.
-    2: {name: demo-led-cut, max_on_s: 30}
+    2: {name: demo-led-cut, max_on_s: 3600}   # relay ON = strip OFF, so a long cap is safe (operator 'LED off')
     # Polyhouse later: test-tray valve, drip, submersible pump (with interlock), Bays 1-5.
     # 2: {name: submersible-pump, max_on_s: 1800, interlock: {param: tank_level_pct, min: 15}}
 
@@ -99,7 +99,7 @@ relays:
 expo:
   zone_name: Anthurium demo tray
   valve_channel: 0      # relay channel the water device is wired to (the mini pump)
-  water_s: 10           # how long one approved watering runs (tune after the flow test)
+  water_s: 4            # how long one approved watering runs (tune after the flow test)
   dry_below: 25         # pot moisture % that triggers a WhatsApp ask
   cooldown_s: 120       # minimum gap between automatic asks
   ask_expire_s: 300     # unanswered asks expire after this

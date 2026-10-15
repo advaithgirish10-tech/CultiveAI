@@ -41,9 +41,11 @@
       <button class="amber" onclick="post('/api/ask')">1 · Send WhatsApp ask now</button>
       <button onclick="post('/api/approve')">2 · Approve here (fallback)</button>
       <button class="grey" onclick="post('/api/ignore')">Ignore open ask</button>
-      <button class="blue" onclick="post('/api/pump')">Pump on 10 s (manual)</button>
+      <button class="blue" onclick="post('/api/pump')">Pump on (manual, water_s)</button>
       <button class="red" onclick="post('/api/stop')">Stop pump now</button>
       <button class="blue" onclick="post('/api/fan')">Fan 20 s (test)</button>
+      <button onclick="post('/api/led/on')">LED strip ON</button>
+      <button class="grey" onclick="post('/api/led/off')">LED strip OFF</button>
       <button class="blue" onclick="post('/api/wa/test')">Send WhatsApp test</button>
       <button class="grey" onclick="post('/api/sim/dry')">Simulator: dry the pot</button>
     </div>
