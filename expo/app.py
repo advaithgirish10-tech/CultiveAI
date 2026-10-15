@@ -199,6 +199,22 @@ class Engine:
         log.info("LED strip %s by %s", "on" if on else "off", by)
         return True, "LED strip " + ("on" if on else "off (for up to 1 hour, or until you switch it on)")
 
+    def device_states(self, now):
+        """What the relay is actually doing, from the edge service's own action log (not what we asked for)."""
+        out = {}
+        with self.conn() as c:
+            for key, ch in (("pump", self.o.get("valve_channel")), ("fan", self.o.get("fan_channel")),
+                            ("led", self.o.get("light_channel"))):
+                if ch is None:
+                    continue
+                r = c.execute("SELECT ts, state, duration_s FROM actions WHERE channel=? ORDER BY id DESC LIMIT 1",
+                              (ch,)).fetchone()
+                relay_on = bool(r and r[1] == "on" and (r[2] is None or r[0] + r[2] > now))
+                left = max(0, round(r[0] + r[2] - now)) if relay_on and r[2] else 0
+                # the LED strip is on the NC contact: relay ON = strip OFF
+                out[key] = {"on": (not relay_on) if key == "led" else relay_on, "left": left}
+        return out
+
     def light_tick(self, now):
         # still dark-period with >3 s left: nothing to do. In the last 3 s, re-arm if the torch is still on,
         # so the strip doesn't blink back on between two 10 s periods (a new ON resets the relay deadline).
@@ -301,6 +317,7 @@ class Engine:
             "light": {"configured": self.o.get("light_channel") is not None,
                       "strip_on": now >= self.light_until, "left": max(0, round(self.light_until - now)),
                       "bright_lux": self.o["light_bright_lux"]},
+            "devices": self.device_states(now),
             "whatsapp": "ready" if whatsapp.configured() else "not configured",
             "last_error": self.last_error,
         }

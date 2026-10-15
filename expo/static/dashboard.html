@@ -47,6 +47,13 @@
     transition:color .3s}
   .tile .v small{font-size:2.6vh;color:var(--muted);font-weight:600;margin-left:.3vw}
   .tile .v.flash{color:var(--leaf)}
+  .devs{display:flex;flex-direction:column;gap:1.1vh;margin-top:1.2vh}
+  .dev{display:flex;align-items:center;gap:.8vw;font-size:2.6vh}
+  .dev i{width:1.6vh;height:1.6vh;border-radius:50%;background:#3a4a40;flex:none}
+  .dev b{font-weight:650;flex:1}
+  .dev span{color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
+  .dev.on i{background:var(--leaf);box-shadow:0 0 1vh var(--leaf)} .dev.on span{color:var(--leaf)}
+  .dev.pump.on i{background:var(--blue);box-shadow:0 0 1vh var(--blue)} .dev.pump.on span{color:var(--blue)}
   .tile .note{color:var(--muted);font-size:1.7vh;margin-top:.4vh}
 
   .loop{display:grid;grid-template-columns:repeat(5,1fr);gap:1vw}
@@ -109,7 +116,10 @@
       <div class="card tile"><div class="label">Air temperature</div><div class="v" id="t_air">--<small>°C</small></div><div class="note">Breathe on the sensor</div></div>
       <div class="card tile"><div class="label">Humidity</div><div class="v" id="t_hum">--<small>%</small></div><div class="note">Anthuriums like 70–85%</div></div>
       <div class="card tile"><div class="label">Light</div><div class="v" id="t_lux">--<small>lux</small></div><div class="note" id="luxNote">Shine a torch on it</div></div>
-      <div class="card tile" id="fanTile"><div class="label">Fan</div><div class="v" id="t_fan">Off</div><div class="note" id="fanNote">Breathe on the air sensor</div></div>
+      <div class="card tile" id="devTile"><div class="label">Devices</div>
+        <div class="devs"><div class="dev" id="d_pump"><i></i><b>Pump</b><span>--</span></div>
+        <div class="dev" id="d_fan"><i></i><b>Fan</b><span>--</span></div>
+        <div class="dev" id="d_led"><i></i><b>LED strip</b><span>--</span></div></div></div>
       <div class="card tile"><div class="label">Soil EC</div><div class="v" id="t_ec">--<small>µS/cm</small></div><div class="note">Fertiliser strength in the pot</div></div>
       <div class="card tile"><div class="label">Soil pH</div><div class="v" id="t_ph">--<small>pH</small></div><div class="note">Anthuriums like 5.5–6.5</div></div>
     </div>
@@ -214,9 +224,13 @@ async function tick(){
     setVal("t_ec", v.soil_ec, 0, "µS/cm");
     setVal("t_ph", v.soil_ph, 1, "pH");
     const f = s.fan || {};
-    $("t_fan").innerHTML = f.on ? `On<small>${f.left}s</small>` : "Off";
-    $("t_fan").classList.toggle("flash", !!f.on);
-    $("fanNote").textContent = f.on ? (f.reason || "Running") : "Breathe on the air sensor";
+    const D = s.devices || {};
+    for (const k of ["pump","fan","led"]) {
+      const d = D[k], el = $("d_"+k);
+      if (!d) { el.style.display = "none"; continue; }
+      el.className = "dev " + k + (d.on ? " on" : "");
+      el.querySelector("span").textContent = d.on ? (d.left && k !== "led" ? `On · ${d.left}s` : "On") : "Off";
+    }
     const L = s.light || {};
     if (L.configured) $("luxNote").textContent = L.strip_on ? "LED strip on · shine a torch on it" : (L.left > 60 ? "LED strip off (operator)" : `Bright light: LED strip off, ${L.left}s`);
     spark(s.moisture_history, s.dry_below);

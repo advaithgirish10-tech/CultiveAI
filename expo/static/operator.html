@@ -34,6 +34,7 @@
     <div class="card"><div class="muted">Status</div><div class="phase" id="phase">…</div><div id="headline" class="muted"></div></div>
     <div class="card"><div class="muted">WhatsApp</div><div class="phase" id="wa">…</div><div class="muted" id="err"></div></div>
     <div class="card"><div class="muted">Pot moisture</div><div class="phase" id="moist">--</div><div class="muted" id="dev"></div></div>
+    <div class="card"><div class="muted">Devices (from the relay)</div><div class="phase" id="devs">--</div></div>
   </div>
 
   <div class="card">
@@ -41,7 +42,7 @@
       <button class="amber" onclick="post('/api/ask')">1 · Send WhatsApp ask now</button>
       <button onclick="post('/api/approve')">2 · Approve here (fallback)</button>
       <button class="grey" onclick="post('/api/ignore')">Ignore open ask</button>
-      <button class="blue" onclick="post('/api/pump')">Pump on (manual, water_s)</button>
+      <button class="blue" onclick="post('/api/pump')">Pump on 4 s (manual)</button>
       <button class="red" onclick="post('/api/stop')">Stop pump now</button>
       <button class="blue" onclick="post('/api/fan')">Fan 20 s (test)</button>
       <button onclick="post('/api/led/on')">LED strip ON</button>
@@ -81,6 +82,9 @@ async function post(url){
 async function refresh(){
   const s = await (await fetch("/api/state",{cache:"no-store"})).json();
   $("phase").textContent = s.phase; $("headline").textContent = s.headline;
+  const D = s.devices || {}, nm = {pump:"Pump", fan:"Fan", led:"LED"};
+  $("devs").innerHTML = Object.keys(nm).filter(k => D[k]).map(k =>
+    `<span class="${D[k].on ? "ok" : "muted"}">${nm[k]} ${D[k].on ? "ON" + (D[k].left && k !== "led" ? " " + D[k].left + "s" : "") : "off"}</span>`).join(" · ");
   $("wa").textContent = s.whatsapp; $("wa").className = "phase " + (s.whatsapp==="ready"?"ok":"bad");
   $("err").textContent = s.last_error || "";
   $("moist").textContent = s.values.soil_moisture === null ? "--" : s.values.soil_moisture.toFixed(1) + " %";
