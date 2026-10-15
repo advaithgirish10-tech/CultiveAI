@@ -5,96 +5,224 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cultive · Operator</title>
 <style>
-  :root{--bg:#f6f7f4;--ink:#1d2a21;--muted:#66756b;--line:#dfe4dc;--leaf:#2f7d3e;--amber:#b7791f;--red:#c0392b;--blue:#1f6fb2}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Inter","Segoe UI",system-ui,sans-serif;font-size:15px}
-  main{max-width:880px;margin:0 auto;padding:24px 16px 48px}
-  h1{font-size:20px;margin:0 0 4px}
-  .muted{color:var(--muted)}
-  .row{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
-  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;flex:1;min-width:240px}
-  .phase{font-size:18px;font-weight:700}
-  button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:14px 18px;cursor:pointer;color:#fff;background:var(--leaf)}
-  button.amber{background:var(--amber)} button.red{background:var(--red)} button.grey{background:#5d6b62} button.blue{background:var(--blue)}
-  button:active{transform:translateY(1px)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
-  table{width:100%;border-collapse:collapse;font-size:14px}
-  td,th{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line)}
-  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#eef1ec}
-  .ok{color:var(--leaf)} .bad{color:var(--red)}
-  #toast{min-height:20px;margin-top:8px;font-weight:600}
+  :root{--bg:#f6f7f5;--card:#fff;--ink:#141a16;--ink2:#3d4a42;--muted:#7a877f;--line:#e8ece7;
+    --green:#1f6b3a;--leaf:#2f9e55;--ok-bg:#eef7f0;--amber:#e39a2a;--amber-bg:#fdf3e2;--red:#c43a31;--red-bg:#fdecea;
+    --blue:#2f6fd6;--blue-bg:#e9f0fd;--sh:0 1px 2px rgba(20,40,25,.04),0 4px 18px rgba(20,40,25,.05)}
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:"Inter","SF Pro Text","Segoe UI",system-ui,-apple-system,sans-serif;font-size:14px}
+  .app{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:100vh}
+  svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+  /* sidebar */
+  aside{background:#fbfcfa;border-right:1px solid var(--line);padding:26px 18px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh}
+  .logo{display:flex;align-items:center;gap:6px;font-size:28px;font-weight:800;letter-spacing:-.045em;color:var(--green);margin:0 8px 28px}
+  .logo span{color:var(--leaf)} .logo svg{width:26px;height:26px;fill:var(--leaf)}
+  nav a{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;color:var(--ink2);text-decoration:none;font-weight:550;font-size:15px}
+  nav a.on{background:#eef1ed;color:var(--ink);font-weight:650;box-shadow:inset 3px 0 0 var(--green)}
+  nav a:hover{background:#f1f3f0}
+  .sys{margin-top:auto;display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px 14px}
+  .sys b{display:block;font-size:13px} .sys small{color:var(--muted);font-size:12px}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--leaf);flex:none;box-shadow:0 0 0 4px #e3f2e7}
+  .dot.amber{background:var(--amber);box-shadow:0 0 0 4px var(--amber-bg)} .dot.red{background:var(--red);box-shadow:0 0 0 4px var(--red-bg)}
+  .dot.grey{background:#b9c1bb;box-shadow:0 0 0 4px #eef0ee} .dot.blue{background:var(--blue);box-shadow:0 0 0 4px var(--blue-bg)}
+
+  /* main */
+  main{padding:26px 32px 40px;display:flex;flex-direction:column;gap:18px;min-width:0}
+  .head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  .kick{font-size:13px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+  h1{font-size:34px;font-weight:800;letter-spacing:-.03em;margin:2px 0 4px}
+  .sub{color:var(--muted);font-size:15px}
+  .hr{display:flex;gap:10px;align-items:center}
+  .chip{display:flex;align-items:center;gap:8px;background:#eef1ed;border-radius:12px;padding:10px 16px;font-weight:650}
+  .clock{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 18px;box-shadow:var(--sh)}
+  .clock b{font-size:18px;font-variant-numeric:tabular-nums;display:block} .clock small{color:var(--muted)}
+
+  .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);padding:18px;min-width:0}
+  .stat{display:flex;gap:14px;align-items:center;position:relative}
+  .stat .ic{width:52px;height:52px;border-radius:50%;background:#f1f3f0;display:grid;place-items:center;flex:none;color:var(--ink)}
+  .stat .ic svg{width:26px;height:26px}
+  .stat .k{color:var(--ink2);font-size:13px}
+  .stat .v{font-size:22px;font-weight:780;letter-spacing:-.02em;margin:2px 0;text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stat .s{color:var(--muted);font-size:12.5px;line-height:1.35}
+  .stat>.dot{position:absolute;top:2px;right:2px}
+  .stat>div:nth-child(2){min-width:0;flex:1}
+  .card.st-asking,.card.st-dry{background:#fffaf2;border-color:#f6e2c3}
+  .card.st-ok,.card.st-done{background:#f4faf5;border-color:#d8ecdd}
+  .card.st-watering,.card.st-measuring{background:#f5f8fe;border-color:#d7e3fa}
+  .card.st-offline{background:#fff6f5;border-color:#f3cfca}
+  .devs{display:flex;flex-direction:column;gap:5px;margin-top:4px}
+  .devs div{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600}
+  .devs i{width:8px;height:8px;border-radius:50%;background:#c9d0cb}
+  .devs .on i{background:var(--leaf)} .devs .on.pump i{background:var(--blue)}
+  .devs span{margin-left:auto;color:var(--muted);font-weight:600} .devs .on span{color:var(--leaf)} .devs .on.pump span{color:var(--blue)}
+
+  .sect{display:flex;gap:14px;align-items:flex-start;margin-bottom:16px}
+  .sect b{font-size:17px} .sect .sub{font-size:14px;margin-top:2px}
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  .btn{display:flex;align-items:center;gap:14px;font:inherit;font-weight:650;font-size:14.5px;text-align:left;cursor:pointer;
+    border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:12px;padding:15px 16px;transition:transform .05s,box-shadow .2s}
+  .btn:hover{box-shadow:var(--sh)} .btn:active{transform:translateY(1px)}
+  .btn .t{flex:1;line-height:1.25} .btn .chev{width:16px;height:16px;opacity:.7}
+  .btn.dark{background:#16191a;color:#fff;border-color:#16191a}
+  .btn.go{background:linear-gradient(180deg,#24804a,#1b6a3b);color:#fff;border-color:#1b6a3b}
+  .btn.stop{background:var(--red-bg);border-color:#f6cfca}
+  .btn.light{background:#f2f9f3;border-color:#dcefe1}
+  .toast{min-height:22px;margin-top:12px;font-weight:650}
+  .toast.ok{color:var(--green)} .toast.bad{color:var(--red)}
+
+  .warn{display:flex;align-items:center;gap:14px;background:var(--red-bg);border:1px solid #f4c9c4;border-radius:12px;padding:13px 18px;color:#a3271f}
+  .warn b{color:var(--red);white-space:nowrap} .warn .bar{width:1px;height:18px;background:#e8a9a2}
+
+  .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+  .th{display:flex;align-items:center;gap:12px;margin-bottom:10px} .th b{font-size:17px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;color:var(--ink2);font-weight:600;font-size:12.5px;padding:8px 6px;border-bottom:1px solid var(--line)}
+  td{padding:8px 6px;border-bottom:1px solid #f1f3f0;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:650;border-radius:99px;padding:2px 9px;background:#eef1ee;color:var(--ink2)}
+  .pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+  .p-pending{background:var(--amber-bg);color:#b06e10} .p-expired,.p-ignored{background:var(--red-bg);color:var(--red)}
+  .p-done{background:var(--ok-bg);color:var(--green)} .p-watering{background:var(--blue-bg);color:var(--blue)}
+  details{color:var(--ink2)} summary{cursor:pointer;font-weight:650;color:var(--green)}
+  details div{margin-top:10px;line-height:1.7}
+  @media (max-width:1100px){.cards,.grid{grid-template-columns:repeat(2,minmax(0,1fr))} .two{grid-template-columns:1fr}}
+  @media (max-width:760px){.app{grid-template-columns:1fr} aside{display:none} main{padding:18px 16px}}
 </style>
 </head>
 <body>
-<main>
-  <h1>Operator panel</h1>
-  <div class="muted">Laptop only. Visitors see the TV at <code>/</code>.</div>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M20 4C10 4 4 9 4 16c0 1.5.3 2.8.8 4 1-4 4.2-7.4 9.2-9-4 2.3-6.6 5.4-7.6 9.2C8 20.7 9.4 21 11 21c6 0 9-6 9-17z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></symbol>
+  <symbol id="i-bars" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></symbol>
+  <symbol id="i-sprout" viewBox="0 0 24 24"><path d="M12 21v-9"/><path d="M12 12c0-4-3-6-7-6 0 4 3 6 7 6zM12 10c0-3.5 2.5-5.5 6.5-5.5 0 3.5-2.5 5.5-6.5 5.5z"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor"/></symbol>
+  <symbol id="i-fan" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.8"/><path d="M12 10.2C10 7 11 3.5 13.5 3.5s2.5 4-1.5 6.7zM13.8 12c3.2-2 6.7-1 6.7 1.5s-4 2.5-6.7-1.5zM12 13.8c2 3.2 1 6.7-1.5 6.7s-2.5-4 1.5-6.7zM10.2 12C7 14 3.5 13 3.5 10.5s4-2.5 6.7 1.5z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-msg" viewBox="0 0 24 24"><path d="M4 4h16v12H8l-4 4z"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7 15h10"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3l10 18H2z" fill="currentColor" stroke="none"/><path d="M12 10v5M12 17.5v.5" stroke="#fff" stroke-width="2"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M2 12h4l3-7 4 14 3-7h6"/></symbol>
+</svg>
+<div class="app">
+  <aside>
+    <div class="logo"><svg viewBox="0 0 24 24"><use href="#i-leaf"/></svg>cultive<span>AI</span></div>
+    <nav>
+      <a class="on" href="/operator"><svg class="i"><use href="#i-home"/></svg>Operator</a>
+      <a href="/" target="_blank"><svg class="i"><use href="#i-bars"/></svg>TV dashboard</a>
+      <a href="/phone" target="_blank"><svg class="i"><use href="#i-phone"/></svg>Phone view</a>
+      <a href="#logs"><svg class="i"><use href="#i-doc"/></svg>Logs</a>
+    </nav>
+    <div class="sys"><span class="dot" id="sysdot"></span><div><b id="sys">Connecting…</b><small id="sys2">Pi</small></div></div>
+  </aside>
 
-  <div class="row">
-    <div class="card"><div class="muted">Status</div><div class="phase" id="phase">…</div><div id="headline" class="muted"></div></div>
-    <div class="card"><div class="muted">WhatsApp</div><div class="phase" id="wa">…</div><div class="muted" id="err"></div></div>
-    <div class="card"><div class="muted">Pot moisture</div><div class="phase" id="moist">--</div><div class="muted" id="dev"></div></div>
-    <div class="card"><div class="muted">Devices (from the relay)</div><div class="phase" id="devs">--</div></div>
-  </div>
-
-  <div class="card">
-    <div class="grid">
-      <button class="amber" onclick="post('/api/ask')">1 · Send WhatsApp ask now</button>
-      <button onclick="post('/api/approve')">2 · Approve here (fallback)</button>
-      <button class="grey" onclick="post('/api/ignore')">Ignore open ask</button>
-      <button class="blue" onclick="post('/api/pump')">Pump on 4 s (manual)</button>
-      <button class="red" onclick="post('/api/stop')">Stop pump now</button>
-      <button class="blue" onclick="post('/api/fan')">Fan 20 s (test)</button>
-      <button onclick="post('/api/led/on')">LED strip ON</button>
-      <button class="grey" onclick="post('/api/led/off')">LED strip OFF</button>
-      <button class="blue" onclick="post('/api/wa/test')">Send WhatsApp test</button>
-      <button class="grey" onclick="post('/api/sim/dry')">Simulator: dry the pot</button>
+  <main>
+    <div class="head">
+      <div><div class="kick" id="zone">Anthurium demo tray</div><h1>Operator panel</h1><div class="sub">Laptop only. Visitors see the TV at /.</div></div>
+      <div class="hr"><div class="chip"><span class="dot" id="livedot"></span><span id="live">Live</span></div>
+        <div class="clock"><b id="clock">--:--:--</b><small id="date"></small></div></div>
     </div>
-    <div id="toast"></div>
-  </div>
 
-  <div class="card" style="margin-top:12px;border-color:#c0392b"><b class="bad">Pump safety:</b> there is no tank sensor at the expo. Keep the bucket full and the pump under water. Never run it dry.</div>
+    <div class="cards">
+      <div class="card stat" id="c_status"><div class="ic"><svg class="i"><use href="#i-sprout"/></svg></div>
+        <div><div class="k">System status</div><div class="v" id="phase">…</div><div class="s" id="headline"></div></div><span class="dot" id="phdot"></span></div>
+      <div class="card stat"><div class="ic"><svg class="i"><use href="#i-chat"/></svg></div>
+        <div><div class="k">WhatsApp</div><div class="v" id="wa">…</div><div class="s" id="err"></div></div><span class="dot grey" id="wadot"></span></div>
+      <div class="card stat"><div class="ic"><svg class="i"><use href="#i-drop"/></svg></div>
+        <div><div class="k">Pot moisture</div><div class="v" id="moist">--</div><div class="s" id="dev"></div></div><span class="dot" id="mdot"></span></div>
+      <div class="card stat"><div class="ic"><svg class="i"><use href="#i-layers"/></svg></div>
+        <div><div class="k">Devices (from the relay)</div><div class="devs" id="devs"></div></div></div>
+    </div>
 
-  <div class="row">
-    <div class="card"><b>Recent asks</b><table id="asks"></table></div>
-    <div class="card"><b>Valve actions</b><table id="acts"></table></div>
-  </div>
+    <div class="card">
+      <div class="sect"><svg class="i" style="width:24px;height:24px"><use href="#i-bolt"/></svg><div><b>Controls</b><div class="sub">Trigger actions and test devices.</div></div></div>
+      <div class="grid">
+        <button class="btn dark" onclick="post('/api/ask')"><svg class="i"><use href="#i-send"/></svg><span class="t">Send WhatsApp<br>ask now</span><svg class="i chev"><use href="#i-chev"/></svg></button>
+        <button class="btn go" onclick="post('/api/approve')"><svg class="i"><use href="#i-check"/></svg><span class="t">Approve here<br>(fallback)</span><svg class="i chev"><use href="#i-chev"/></svg></button>
+        <button class="btn" onclick="post('/api/ignore')"><svg class="i"><use href="#i-x"/></svg><span class="t">Ignore open ask</span><svg class="i chev"><use href="#i-chev"/></svg></button>
+        <button class="btn" onclick="post('/api/pump')"><svg class="i"><use href="#i-play"/></svg><span class="t">Pump on<br>(manual, <span id="wsec">4</span> s)</span><svg class="i chev"><use href="#i-chev"/></svg></button>
+        <button class="btn stop" onclick="post('/api/stop')"><svg class="i"><use href="#i-stop"/></svg><span class="t">Stop pump now</span><svg class="i chev"><use href="#i-chev"/></svg></button>
+        <button class="btn" onclick="post('/api/fan')"><svg class="i"><use href="#i-fan"/></svg><span class="t">Fan 20 s (test)</span><svg class="i chev"><use href="#i-chev"/></svg></button>
+        <button class="btn light" onclick="post('/api/led/on')"><svg class="i"><use href="#i-sun"/></svg><span class="t">LED strip ON</span><svg class="i chev"><use href="#i-chev"/></svg></button>
+        <button class="btn" onclick="post('/api/led/off')"><svg class="i"><use href="#i-sun"/></svg><span class="t">LED strip OFF</span><svg class="i chev"><use href="#i-chev"/></svg></button>
+        <button class="btn" onclick="post('/api/wa/test')"><svg class="i"><use href="#i-msg"/></svg><span class="t">Send WhatsApp test</span><svg class="i chev"><use href="#i-chev"/></svg></button>
+        <button class="btn" onclick="post('/api/sim/dry')"><svg class="i"><use href="#i-flask"/></svg><span class="t">Simulator: dry the pot</span><svg class="i chev"><use href="#i-chev"/></svg></button>
+      </div>
+      <div class="toast" id="toast"></div>
+    </div>
 
-  <div class="card muted">
-    <b class="ok">Demo script, 60 seconds</b><br>
-    1. "This pot has a soil probe. Cover the light sensor… breathe on this one." (live tiles move)<br>
-    2. Press <b>Send WhatsApp ask now</b>, or wait for the pot to cross the line.<br>
-    3. Hand the visitor your phone and let them tap <b>Approve</b>.<br>
-    4. Pump runs, water flows for 10 s and stops by itself. The screen shows moisture rising.<br>
-    Bonus: "Breathe on the air sensor" and the fan turns on by itself when humidity jumps.<br>
-    5. "Every decision and its result is logged. That's the data most farm systems never collect."
-  </div>
-</main>
+    <div class="warn"><svg class="i" style="color:var(--red)"><use href="#i-warn"/></svg><b>Pump safety</b><span class="bar"></span>
+      <span>There is no tank sensor at the expo. Keep the bucket full and the pump under water. Never run it dry.</span></div>
+
+    <div class="two" id="logs">
+      <div class="card"><div class="th"><svg class="i"><use href="#i-clock"/></svg><b>Recent asks</b></div><table id="asks"></table></div>
+      <div class="card"><div class="th"><svg class="i"><use href="#i-pulse"/></svg><b>Valve actions</b></div><table id="acts"></table></div>
+    </div>
+
+    <details class="card"><summary>Demo script, 60 seconds</summary><div>
+      1. "This pot has a soil probe. Shine a torch on the light sensor… breathe on this one." (live tiles move)<br>
+      2. Press <b>Send WhatsApp ask now</b>, or wait for the pot to cross the line.<br>
+      3. Hand the visitor your phone (<code>/phone</code>) and let them tap <b>Approve</b>.<br>
+      4. The pump runs and stops by itself. The screen shows moisture rising.<br>
+      Bonus: "Breathe on the air sensor" and the fan turns on by itself when humidity jumps.<br>
+      5. "Every decision and its result is logged. That's the data most farm systems never collect."
+    </div></details>
+  </main>
+</div>
 <script>
 const $ = id => document.getElementById(id);
 const t = ts => new Date(ts*1000).toLocaleTimeString("en-IN",{hour12:false});
+const DOT = {ok:"", done:"", dry:"amber", asking:"amber", watering:"blue", measuring:"blue", offline:"red"};
 async function post(url){
-  const r = await (await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"})).json();
-  $("toast").textContent = r.info || (r.ok ? "Done" : "Failed");
-  $("toast").className = r.ok === false ? "bad" : "ok";
+  try {
+    const r = await (await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"})).json();
+    $("toast").textContent = r.info || (r.ok ? "Done" : "Failed");
+    $("toast").className = "toast " + (r.ok === false ? "bad" : "ok");
+  } catch(e) { $("toast").textContent = "Can't reach the Pi"; $("toast").className = "toast bad"; }
   refresh();
 }
 async function refresh(){
-  const s = await (await fetch("/api/state",{cache:"no-store"})).json();
+  let s;
+  try { s = await (await fetch("/api/state",{cache:"no-store"})).json(); }
+  catch(e) { $("sys").textContent = "Pi not reachable"; $("sys2").textContent = "Check WiFi / power"; $("sysdot").className = "dot red";
+             $("live").textContent = "Offline"; $("livedot").className = "dot red"; return; }
+  $("sys").textContent = "System online"; $("sys2").textContent = "Pi connected"; $("sysdot").className = "dot";
+  $("live").textContent = "Live"; $("livedot").className = "dot";
+  $("zone").textContent = s.zone;
+  $("wsec").textContent = s.water_s;
   $("phase").textContent = s.phase; $("headline").textContent = s.headline;
-  const D = s.devices || {}, nm = {pump:"Pump", fan:"Fan", led:"LED"};
+  $("c_status").className = "card stat st-" + s.phase; $("phdot").className = "dot " + (DOT[s.phase] || "");
+  const D = s.devices || {}, nm = {pump:"Pump", fan:"Fan", led:"LED strip"};
   $("devs").innerHTML = Object.keys(nm).filter(k => D[k]).map(k =>
-    `<span class="${D[k].on ? "ok" : "muted"}">${nm[k]} ${D[k].on ? "ON" + (D[k].left && k !== "led" ? " " + D[k].left + "s" : "") : "off"}</span>`).join(" · ");
-  $("wa").textContent = s.whatsapp; $("wa").className = "phase " + (s.whatsapp==="ready"?"ok":"bad");
-  $("err").textContent = s.last_error || "";
-  $("moist").textContent = s.values.soil_moisture === null ? "--" : s.values.soil_moisture.toFixed(1) + " %";
+    `<div class="${k}${D[k].on ? " on" : ""}"><i></i>${nm[k]}<span>${D[k].on ? "On" + (D[k].left && k !== "led" ? " · " + D[k].left + "s" : "") : "Off"}</span></div>`).join("");
+  const waOk = s.whatsapp === "ready";
+  $("wa").textContent = waOk ? "Ready" : "Not configured"; $("wadot").className = "dot " + (waOk ? "" : "grey");
+  $("err").textContent = s.last_error || (waOk ? "Asks go to WhatsApp" : "Use the TV phone or Approve here");
+  const m = s.values.soil_moisture;
+  $("moist").innerHTML = m === null ? "--" : m.toFixed(1) + ' <span style="font-size:15px">%</span>';
   $("dev").textContent = s.offline_devices.length ? "Offline: " + s.offline_devices.join(", ") : "All sensors online";
+  $("mdot").className = "dot " + (s.offline_devices.length ? "red" : (m !== null && m < s.dry_below ? "amber" : ""));
   $("asks").innerHTML = "<tr><th>#</th><th>Time</th><th>Status</th><th>Before → after</th><th>By</th></tr>" +
-    s.asks.map(a=>`<tr><td>${a.id}</td><td>${t(a.ts)}</td><td><span class="pill">${a.status}</span></td>
-      <td>${a.before==null?"--":a.before.toFixed(0)}% → ${a.after==null?"--":a.after.toFixed(0)+"%"}</td><td>${a.by||""}</td></tr>`).join("");
+    s.asks.map(a=>`<tr><td>${a.id}</td><td>${t(a.ts)}</td><td><span class="pill p-${a.status}">${a.status}</span></td>
+      <td>${a.before==null?"--":a.before.toFixed(0)+"%"} → ${a.after==null?"--":a.after.toFixed(0)+"%"}</td><td>${a.by||"—"}</td></tr>`).join("");
   $("acts").innerHTML = "<tr><th>Time</th><th>What</th><th>Source</th></tr>" +
     s.actions.map(a=>`<tr><td>${t(a.ts)}</td><td>${a.name} ${a.state}${a.dur?" "+a.dur+"s":""}</td><td>${a.source}</td></tr>`).join("");
 }
+function clock(){ const d = new Date();
+  $("clock").textContent = d.toLocaleTimeString("en-IN",{hour12:false});
+  $("date").textContent = d.toLocaleDateString("en-IN",{weekday:"short", day:"numeric", month:"short"}); }
+setInterval(clock, 1000); clock();
 setInterval(refresh, 2000); refresh();
 </script>
 </body>
