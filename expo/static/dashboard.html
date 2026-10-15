@@ -64,6 +64,14 @@
     transition:transform .6s cubic-bezier(.2,.9,.25,1);background:#0b0f0c;border-radius:4.5vh;padding:1.4vh;
     box-shadow:0 3vh 8vh rgba(0,0,0,.65),0 0 0 2px #2b3a30;z-index:10}
   .phone.show{transform:translate(0,-50%)}
+  /* while the phone is open, the dashboard squeezes left instead of hiding under it */
+  .wrap{transition:padding-right .6s cubic-bezier(.2,.9,.25,1)}
+  body.phone-open .wrap{padding-right:calc(max(25vw,330px) + 5.5vw)}
+  .phone .min{margin-left:auto;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:1vh;
+    font:inherit;font-size:2.4vh;font-weight:700;width:4.4vh;height:4.4vh;cursor:pointer;line-height:1}
+  .pill{display:none;margin-right:1.2vw;background:var(--amber-d);color:var(--ink);border:1px solid var(--amber);
+    border-radius:99px;padding:.6vh 1.1vw;font:inherit;font-size:1.9vh;font-weight:600;cursor:pointer}
+  .pill.show{display:inline-block}
   .phone .scr{height:100%;border-radius:3.4vh;overflow:hidden;background:#eef2ea;display:flex;flex-direction:column}
   .phone .top{background:#1f3b2a;color:#fff;padding:2.2vh 1.2vw 1.6vh;display:flex;align-items:center;gap:.8vw}
   .phone .av{width:4.6vh;height:4.6vh;border-radius:50%;background:#7fd18b;color:#1f3b2a;display:grid;place-items:center;font-weight:800;font-size:2.2vh}
@@ -85,7 +93,7 @@
 <div class="wrap">
   <header>
     <div><span class="brand">Cultive<span> AI</span></span><span class="sub" id="zone">Live polyhouse demo</span></div>
-    <div class="clock"><span class="live"></span><span id="clock">--:--:--</span></div>
+    <div class="clock"><button class="pill" id="pill" onclick="restorePhone()">Grower's phone ▸</button><span class="live"></span><span id="clock">--:--:--</span></div>
   </header>
 
   <div class="banner" id="banner"><div class="dot"></div><div class="h" id="headline">Connecting…</div></div>
@@ -114,7 +122,7 @@
   </div>
 </div>
 <div class="phone" id="phone"><div class="scr">
-  <div class="top"><div class="av">C</div><div><b>Cultive AI</b><span>Grower's phone · demo view</span></div></div>
+  <div class="top"><div class="av">C</div><div><b>Cultive AI</b><span>Grower's phone · demo view</span></div><button class="min" title="Minimise" onclick="minimisePhone()">–</button></div>
   <div class="tag">Real alerts arrive on WhatsApp</div>
   <div class="msgs" id="msgs"></div>
 </div></div>
@@ -173,10 +181,17 @@ function chat(s){
   }
   return out.join("");
 }
-let lastChat = "";
+let lastChat = "", hiddenAsk = null, curAsk = null;
+function minimisePhone(){ hiddenAsk = curAsk; tick(); }
+function restorePhone(){ hiddenAsk = null; tick(); }
 function phone(s){
   const html = chat(s);
-  $("phone").classList.toggle("show", !!html);
+  curAsk = s.ask ? s.ask.id : null;
+  const hidden = html && hiddenAsk !== null && hiddenAsk === curAsk;   // minimised for this ask only; a new ask pops up again
+  const open = !!html && !hidden;
+  $("phone").classList.toggle("show", open);
+  document.body.classList.toggle("phone-open", open);
+  $("pill").classList.toggle("show", !!hidden);
   if (html && html !== lastChat) $("msgs").innerHTML = html;  // only redraw on change so bubbles don't re-animate
   lastChat = html || lastChat;
 }

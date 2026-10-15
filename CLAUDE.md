@@ -50,6 +50,7 @@ Known risks: gravity flow through the ¼" valve may only trickle (backup: 12V mi
 - Expo uses the mini PUMP on relay CH1 (channel 0, 10 s per approval) and a mini FAN on CH2 (channel 1). Fan rule: humidity >= 8 points above its 3-min normal (someone breathes on the MD02) -> fan 20 s, 40 s cooldown. No tank sensor at the expo: bucket must stay full. Relay safety tests use their own channel map, not config.yaml.
 - Demo phone (14 Oct): the TV shows a phone-style chat panel only while a watering ask is open (Approve/Ignore work there), then the result, then it slides away. `/phone` is the same chat for a real phone on the same WiFi. Labelled "demo view", no WhatsApp branding. `poll_interval_s: 2` for the expo (set back to 60 after).
 - LED strip (15 Oct): relay CH3 = channel 2, wired to the NC contact (relay ON = strip OFF). Torch on the lux sensor (>= `light_bright_lux`, 1500) -> strip off 10 s, kept off while it stays bright. Pump tested in water 15 Oct: works.
+- 16 Oct: TV dashboard squeezes left while the phone is open (nothing hidden); phone has a minimise button (comes back for the next ask, or via the 'Grower's phone' pill). Operator panel: 'Pump on 10 s (manual)' (`/api/pump`, capped 30 s). Auto-start (systemd) installed and verified on the Pi.
 - Next: pump + fan click test on the relay, live dashboard with real sensors, flow test, WhatsApp, run both services at boot (systemd) for the expo.
 
 ## Later (after the expo)

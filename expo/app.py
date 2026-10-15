@@ -131,6 +131,15 @@ class Engine:
             # an open watering ask moves straight to "measuring" so the TV doesn't show a stale countdown
             c.execute("UPDATE asks SET resolved_ts=? WHERE status='watering'", (time.time() - self.o["water_s"],))
 
+    def pump_manual(self, seconds=None, by="operator"):
+        """Operator override: run the pump for N seconds without an ask (relay max_on_s still caps it)."""
+        s = max(1, min(int(seconds or self.o["water_s"]), 30))
+        with self.conn() as c:
+            c.execute("INSERT INTO commands(ts,channel,state,duration_s,source,reason) VALUES (?,?,?,?,?,?)",
+                      (time.time(), self.o["valve_channel"], "on", s, by, "manual pump (operator)"))
+        log.info("manual pump %ss by %s", s, by)
+        return True, f"pump on for {s}s"
+
     def fan_on(self, reason, by="rule"):
         if self.o.get("fan_channel") is None:
             return False, "no fan configured"
@@ -318,6 +327,12 @@ def create_app(engine):
     def api_stop():
         engine.stop_valve()
         return jsonify(ok=True)
+
+    @app.post("/api/pump")
+    def api_pump():
+        body = request.get_json(silent=True) or {}
+        ok, info = engine.pump_manual(body.get("s"))
+        return jsonify(ok=ok, info=info)
 
     @app.post("/api/fan")
     def api_fan():
